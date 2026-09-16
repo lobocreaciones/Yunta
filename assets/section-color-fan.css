@@ -1,0 +1,232 @@
+.color-fan__header .title {
+  margin: 0;
+}
+
+.color-fan__header.center {
+  text-align: center;
+}
+
+.color-fan__header.right {
+  text-align: right;
+}
+
+.color-fan__subheading {
+  margin: 0.5rem 0 0;
+  color: rgba(var(--color-foreground), 0.65);
+}
+
+/* Display is declared here, not left to the UA: the stage ships with the
+   hidden attribute so a theme-editor re-render cannot paint an unstyled
+   frame — this declaration overrides the attribute once the sheet applies. */
+.color-fan__stage {
+  position: relative;
+  display: block;
+  width: min(var(--fan-stage-width, 36rem), 78vw);
+  aspect-ratio: 1;
+  margin: 2rem auto 0;
+}
+
+/* Cards and picture share ONE box cut to the image's own aspect ratio (the
+   Liquid computes it), so the closed stack hides flush behind the picture —
+   nothing pokes out until the fan opens. No opacity animation: the cards
+   wait fully painted and only ROTATE out — the whole fan appears at once,
+   which is the surprise. Each card's standing opacity still steps down the
+   stack for depth. */
+.color-fan__card {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--fan-box-width, 76%);
+  height: var(--fan-box-height, 76%);
+  border-radius: var(--fan-card-radius, var(--card-radius));
+  background-color: var(--fan-color);
+  opacity: var(--fan-opacity);
+  transform: rotate(0deg) scale(0.92);
+  transition: transform var(--duration-long) cubic-bezier(0.22, 1, 0.36, 1) var(--fan-delay);
+  will-change: transform;
+}
+
+.color-fan.is-open .color-fan__card {
+  transform: rotate(var(--fan-angle)) scale(var(--fan-scale-open, 1));
+}
+
+.no-js .color-fan .color-fan__card {
+  transform: rotate(var(--fan-angle));
+}
+
+/* A shade can be a picture instead of a color — texture smears, variant
+   shots. It fills the card and clips to the same radius. */
+.color-fan__card > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+/* Hand fan: the same rotation carried around a pivot below the card
+   (translate pair = pivot; both states keep the identical function list so
+   the transition interpolates per-function, sweeping a clean arc). Tops
+   separate widely while bottoms stay gathered, so each shade shows almost
+   whole. The spread multiplier lets narrow viewports tighten the span
+   without touching the per-card angles. */
+.color-fan--spread .color-fan__card {
+  transform: translateY(65%) rotate(0deg) translateY(-65%) scale(0.92);
+}
+
+.color-fan--spread.is-open .color-fan__card {
+  transform: translateY(65%) rotate(calc(var(--fan-angle) * var(--fan-spread-scale, 1))) translateY(-65%) scale(var(--fan-scale-open, 1));
+}
+
+.no-js .color-fan--spread .color-fan__card {
+  transform: translateY(65%) rotate(calc(var(--fan-angle) * var(--fan-spread-scale, 1))) translateY(-65%);
+}
+
+@media screen and (max-width: 749px) {
+  .color-fan--spread {
+    --fan-spread-scale: 0.6;
+  }
+}
+
+.color-fan__media {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--fan-box-width, 76%);
+  height: var(--fan-box-height, 76%);
+  z-index: 1;
+}
+
+.color-fan__media img,
+.color-fan__media svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--fan-image-radius, 0);
+}
+
+/* ---- Hover ring + tooltip ---- */
+
+/* Registered so the conic start angle interpolates — without it the ring
+   falls back to a static arc, which still reads fine. */
+@property --fan-ring-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes fan-ring-spin {
+  to {
+    --fan-ring-angle: 360deg;
+  }
+}
+
+.color-fan {
+  position: relative;
+  display: block;
+}
+
+/* Two soft layers per card, masked to the border band and blurred — a halo
+   that breathes around the edge, not a drawn line. The pseudo boxes sit
+   outside the card, so their radius must GROW by the same offset or the
+   corner arcs stop running parallel and gaps open. The arc color falls back
+   to the card's own shade, so the default mode needs no extra rule.
+   z-index lifts the glow over the card's img. */
+.color-fan--ring .color-fan__card::before,
+.color-fan--ring .color-fan__card::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  z-index: 1;
+  border-radius: calc(var(--fan-card-radius, var(--card-radius)) + 3px);
+  padding: 5px;
+  /* The half-alpha shoulders keep the arc from snapping in and out of
+     existence — a bare two-stop fade shows its angular steps as radial
+     streaks. Browsers without color-mix fall back to the simple arc. */
+  background: conic-gradient(
+    from var(--fan-ring-angle),
+    transparent 0deg,
+    var(--fan-ring, var(--fan-color)) 120deg,
+    var(--fan-ring, var(--fan-color)) 200deg,
+    transparent 320deg
+  );
+  background: conic-gradient(
+    from var(--fan-ring-angle),
+    transparent 0deg,
+    color-mix(in srgb, var(--fan-ring, var(--fan-color)) 45%, transparent) 70deg,
+    var(--fan-ring, var(--fan-color)) 150deg,
+    color-mix(in srgb, var(--fan-ring, var(--fan-color)) 45%, transparent) 240deg,
+    transparent 310deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  filter: blur(6px);
+  opacity: 0;
+  transition: opacity var(--duration-default) ease;
+  pointer-events: none;
+}
+
+.color-fan--ring .color-fan__card::after {
+  inset: -6px;
+  border-radius: calc(var(--fan-card-radius, var(--card-radius)) + 6px);
+  padding: 9px;
+  filter: blur(18px);
+}
+
+.color-fan--ring-custom .color-fan__card {
+  --fan-ring: var(--fan-ring-color);
+}
+
+/* Perceptual interpolation blends the hues without the grey, spoke-like
+   midpoints sRGB produces; the plain version above it is the fallback. */
+.color-fan--ring-halo .color-fan__card::before,
+.color-fan--ring-halo .color-fan__card::after {
+  background: conic-gradient(
+    from var(--fan-ring-angle),
+    #0a84ff, #bf5af2, #ff375f, #ff9f0a, #ff375f, #bf5af2, #0a84ff
+  );
+  background: conic-gradient(
+    from var(--fan-ring-angle) in oklch,
+    #0a84ff, #bf5af2, #ff375f, #ff9f0a, #ff375f, #bf5af2, #0a84ff
+  );
+}
+
+.color-fan--ring.is-open .color-fan__card:hover::before {
+  opacity: 0.85;
+  animation: fan-ring-spin 2.4s linear infinite;
+}
+
+.color-fan--ring.is-open .color-fan__card:hover::after {
+  opacity: 0.5;
+  animation: fan-ring-spin 2.4s linear infinite;
+}
+
+/* The tooltip lives among the shades, so its corners follow THEIR radius
+   setting, not the button token — capped at half its own height, where any
+   larger value just reads as a pill. */
+.color-fan__tooltip {
+  position: absolute;
+  z-index: 2;
+  translate: -50% -130%;
+  padding: 0.4rem 1.2rem;
+  background-color: rgb(var(--color-foreground));
+  color: rgb(var(--color-background));
+  border-radius: min(var(--fan-card-radius, var(--card-radius)), 1.4rem);
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .color-fan__card {
+    transition: none;
+  }
+
+  .color-fan--ring.is-open .color-fan__card:hover::before,
+  .color-fan--ring.is-open .color-fan__card:hover::after {
+    animation: none;
+  }
+}

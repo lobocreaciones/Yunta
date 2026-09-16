@@ -1,0 +1,785 @@
+{%- liquid
+  assign questions = section.blocks | where: 'type', 'question'
+  assign results = section.blocks | where: 'type', 'result'
+-%}
+
+{%- style -%}
+  #shopify-section-{{ section.id }} {
+    --section-padding-top: {{ section.settings.padding_top }}px;
+    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
+    --color-highlight: {{ section.settings.colors_highlight.red }}, {{ section.settings.colors_highlight.green }}, {{ section.settings.colors_highlight.blue }};
+    {%- comment -%}
+      Blank keeps each cue on the section's highlight ink — one accent
+      ink serves scribbles, washes and cues until the merchant splits
+      them. Triplets, because the effect layers and the pulse alpha them.
+    {%- endcomment -%}
+    {%- liquid
+      assign fx_color = section.settings.background_effect_color
+      assign cue_color = section.settings.start_attention_color
+    -%}
+    --quiz-effect: {% if fx_color != blank %}{{ fx_color.red }}, {{ fx_color.green }}, {{ fx_color.blue }}{% else %}var(--color-highlight){% endif %};
+    --quiz-attention: {% if cue_color != blank %}{{ cue_color.red }}, {{ cue_color.green }}, {{ cue_color.blue }}{% else %}var(--color-highlight){% endif %};
+    {%- if section.settings.use_custom_colors %}
+      --quiz-text: {{ section.settings.colors_text.red }}, {{ section.settings.colors_text.green }}, {{ section.settings.colors_text.blue }};
+      --quiz-background: {{ section.settings.colors_background.red }}, {{ section.settings.colors_background.green }}, {{ section.settings.colors_background.blue }};
+      --quiz-button-label: {{ section.settings.colors_button_label.red }}, {{ section.settings.colors_button_label.green }}, {{ section.settings.colors_button_label.blue }};
+      --quiz-button-background: {{ section.settings.colors_button_background.red }}, {{ section.settings.colors_button_background.green }}, {{ section.settings.colors_button_background.blue }};
+    {%- else %}
+      --quiz-text: var(--color-base-text);
+      --quiz-background: var(--color-base-background);
+      --quiz-button-label: var(--color-base-solid-button-labels);
+      --quiz-button-background: var(--color-base-accent);
+    {%- endif %}
+  }
+{%- endstyle -%}
+
+{{ 'section-skin-quiz.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'skin-quiz.js' | asset_url }}" defer="defer"></script>
+
+{%- liquid
+  # Narrow, default and full width are three points on one axis — all three are
+  # just the page-width wrapper's horizontal padding (15rem / 5rem / 0). One
+  # select, because independent checkboxes can both be picked and leave CSS
+  # source order to break the tie.
+  case section.settings.section_width
+    when 'narrow'
+      assign width_class = 'page-width page-width--inner'
+    when 'full'
+      assign width_class = 'page-width page-width--full-width'
+    else
+      assign width_class = 'page-width'
+  endcase
+-%}
+
+{%- comment -%}
+  The padding is floored in CSS on the coloured element itself, matching
+  guarantees and rich-text. Splitting the two leaves the section's own padding
+  outside the tinted box, which reads as a gap above and below the band.
+{%- endcomment -%}
+{%- if section.settings.show_divider %}<div class="section--divider">{% endif -%}
+  <div class="{{ width_class }}">
+    <div class="skin-quiz skin-quiz--bg-{{ section.settings.background_effect }} skin-quiz--intensity-{{ section.settings.background_intensity }}">
+    {%- if section.settings.background_effect != 'none' -%}
+      {%- comment -%}
+        Decorative only: every layer animates transform/opacity, sits behind the
+        content and is switched off under prefers-reduced-motion.
+      {%- endcomment -%}
+      <div class="skin-quiz__backdrop" aria-hidden="true">
+        {%- if section.settings.background_effect == 'image' -%}
+          {%- if section.settings.background_image != blank -%}
+            {{ section.settings.background_image
+              | image_url: width: 3000
+              | image_tag:
+                loading: 'lazy',
+                widths: '600, 900, 1200, 1600, 2000, 2600, 3000',
+                sizes: '100vw',
+                class: 'skin-quiz__backdrop-image',
+                alt: ''
+            }}
+            {%- comment -%}
+              A merchant's photo can be any brightness, so the section's own
+              background colour is laid back over it as a scrim. Without this the
+              questions stop being readable the moment someone picks a light image.
+            {%- endcomment -%}
+            <span class="skin-quiz__backdrop-scrim"></span>
+          {%- endif -%}
+        {%- else -%}
+          <span class="skin-quiz__backdrop-layer skin-quiz__backdrop-layer--1"></span>
+          <span class="skin-quiz__backdrop-layer skin-quiz__backdrop-layer--2"></span>
+          <span class="skin-quiz__backdrop-layer skin-quiz__backdrop-layer--3"></span>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- if questions.size == 0 or results.size == 0 -%}
+      {%- comment -%}
+        A quiz with no questions or no outcomes cannot resolve to anything, so the
+        editor gets a notice instead of a dead widget.
+      {%- endcomment -%}
+      <p class="skin-quiz__setup-note">{{ 'sections.skin-quiz.setup_note' | t }}</p>
+    {%- else -%}
+      <skin-quiz
+        class="skin-quiz__app"
+        data-question-count="{{ questions.size }}"
+        data-result-count="{{ results.size }}"
+        data-progress-template="{{ 'sections.skin-quiz.progress' | t: current: '[current]', total: '[total]' | escape }}"
+      >
+        {%- if section.settings.show_progress -%}
+          {%- comment -%}
+            One segment per question rather than a single bar: at four questions a
+            continuous track reads as an unknowable distance, segments read as
+            "four, and I am on the second".
+          {%- endcomment -%}
+          <div class="skin-quiz__progress" data-quiz-progress hidden>
+            <p class="skin-quiz__progress-label caption-with-letter-spacing" data-quiz-progress-label aria-live="polite"></p>
+            <span class="skin-quiz__progress-track" aria-hidden="true">
+              {%- for i in (1..questions.size) -%}
+                <span class="skin-quiz__progress-segment" data-quiz-segment="{{ i }}"></span>
+              {%- endfor -%}
+            </span>
+          </div>
+        {%- endif -%}
+
+        <div class="skin-quiz__stage" data-quiz-stage>
+          <div class="skin-quiz__panel skin-quiz__intro is-active" data-quiz-intro>
+            {%- if section.settings.subheading != blank -%}
+              <p class="skin-quiz__eyebrow" style="--i: 0">{{ section.settings.subheading }}</p>
+            {%- endif -%}
+            <{{ section.settings.heading_tag }} class="title {{ section.settings.heading_size }} skin-quiz__heading" style="--i: 1">
+              {%- render 'highlight-text',
+                hl_input: section.settings.heading,
+                hl_style: section.settings.highlight_style,
+                hl_enable: section.settings.enable_highlight,
+                hl_animateWrap: true -%}
+            </{{ section.settings.heading_tag }}>
+            {%- if section.settings.intro_text != blank -%}
+              <div class="skin-quiz__intro-text rte" style="--i: 2">{{ section.settings.intro_text }}</div>
+            {%- endif -%}
+            {%- liquid
+              # Only the fallback is a translation key. Piping the merchant's own
+              # label through `t` would look it up as one and print the miss.
+              assign start_label = section.settings.intro_button_label
+              if start_label == blank
+                assign start_label = 'sections.skin-quiz.start' | t
+              endif
+            -%}
+            <div class="skin-quiz__intro-actions" style="--i: 3">
+              {%- comment -%}
+                The attention cue is opt-in: dropped mid-page the quiz competes
+                with the sections around it, so the intro ships still and the
+                merchant decides whether the button needs a pointer.
+              {%- endcomment -%}
+              {%- if section.settings.start_attention == 'arrow' -%}
+                <span class="skin-quiz__start-wrap">
+                  <button type="button" class="button skin-quiz__start" data-quiz-start>
+                    {{ start_label }}
+                  </button>
+                  <svg class="skin-quiz__start-arrow" viewBox="0 0 48 24" aria-hidden="true" focusable="false">
+                    <path d="M4 12 L40 12" />
+                    <path d="M30 4 L42 12 L30 20" />
+                  </svg>
+                </span>
+              {%- else -%}
+                <button type="button" class="button skin-quiz__start{% if section.settings.start_attention == 'pulse' %} skin-quiz__start--pulse{% endif %}" data-quiz-start>
+                  {{ start_label }}
+                </button>
+              {%- endif -%}
+            </div>
+          </div>
+
+          {%- for block in questions -%}
+            <div
+              class="skin-quiz__panel skin-quiz__step"
+              data-quiz-step="{{ forloop.index }}"
+              hidden
+              {{ block.shopify_attributes }}
+            >
+              <h3 class="skin-quiz__question" style="--i: 0">{{ block.settings.title }}</h3>
+              {%- if block.settings.help != blank -%}
+                <p class="skin-quiz__help" style="--i: 1">{{ block.settings.help }}</p>
+              {%- endif -%}
+
+              {%- comment -%}
+                Answers are numbered by the position they actually render in, not
+                by their slot: a merchant who fills answers 1, 2 and 4 would
+                otherwise see keys 1, 2, 4 and a gap in the entrance stagger.
+              {%- endcomment -%}
+              {%- assign answer_number = 0 -%}
+              <div class="skin-quiz__options" role="group" aria-label="{{ block.settings.title | escape }}">
+                {%- for i in (1..4) -%}
+                  {%- liquid
+                    assign label_key = 'option_' | append: i | append: '_label'
+                    assign hint_key = 'option_' | append: i | append: '_hint'
+                    assign result_key = 'option_' | append: i | append: '_result'
+                    assign option_label = block.settings[label_key]
+                    assign option_hint = block.settings[hint_key]
+                    assign option_result = block.settings[result_key]
+                  -%}
+                  {%- if option_label != blank -%}
+                    {%- assign answer_number = answer_number | plus: 1 -%}
+                    <button
+                      type="button"
+                      class="skin-quiz__option"
+                      style="--i: {{ answer_number | plus: 1 }}"
+                      data-quiz-option
+                      data-quiz-result="{{ option_result }}"
+                    >
+                      <span class="skin-quiz__option-key" aria-hidden="true">{{ answer_number }}</span>
+                      <span class="skin-quiz__option-body">
+                        <span class="skin-quiz__option-label">{{ option_label }}</span>
+                        {%- if option_hint != blank -%}
+                          <span class="skin-quiz__option-hint">{{ option_hint }}</span>
+                        {%- endif -%}
+                      </span>
+                      <span class="skin-quiz__option-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 16 12" width="16" height="12" focusable="false"><path d="M9.5 0 8.44 1.06 14.13 6.75H0v1.5h14.13L8.44 13.94 9.5 15l7.5-7.5z" transform="translate(-0.5 -1.5)"/></svg>
+                      </span>
+                    </button>
+                  {%- endif -%}
+                {%- endfor -%}
+              </div>
+
+              <div class="skin-quiz__controls" style="--i: 6">
+                <button type="button" class="skin-quiz__back link" data-quiz-back>
+                  {{ 'sections.skin-quiz.back' | t }}
+                </button>
+                <span class="skin-quiz__reassurance">{{ 'sections.skin-quiz.no_email' | t }}</span>
+              </div>
+            </div>
+          {%- endfor -%}
+
+          {%- for block in results -%}
+            {%- liquid
+              assign routine_total = 0
+              assign routine_count = 0
+              assign variant_ids = ''
+              for i in (1..3)
+                assign product_key = 'product_' | append: i
+                assign routine_product = block.settings[product_key]
+                if routine_product != blank
+                  assign routine_count = routine_count | plus: 1
+                  assign routine_variant = routine_product.selected_or_first_available_variant
+                  assign routine_total = routine_total | plus: routine_variant.price
+                  assign variant_ids = variant_ids | append: routine_variant.id | append: ','
+                endif
+              endfor
+              assign variant_ids = variant_ids | split: ',' | join: ','
+            -%}
+            <div
+              class="skin-quiz__panel skin-quiz__result"
+              data-quiz-result-panel="{{ forloop.index }}"
+              hidden
+              {{ block.shopify_attributes }}
+            >
+              <h3 class="skin-quiz__result-heading {{ section.settings.heading_size }}" style="--i: 0">
+                {%- render 'highlight-text',
+                  hl_input: block.settings.heading,
+                  hl_style: section.settings.highlight_style,
+                  hl_enable: section.settings.enable_highlight -%}
+              </h3>
+              {%- if block.settings.description != blank -%}
+                <div class="skin-quiz__result-text rte" style="--i: 1">{{ block.settings.description }}</div>
+              {%- endif -%}
+
+              {%- if variant_ids != blank -%}
+                {%- assign step_number = 0 -%}
+                <ol class="skin-quiz__routine">
+                  {%- for i in (1..3) -%}
+                    {%- liquid
+                      assign product_key = 'product_' | append: i
+                      assign note_key = 'product_' | append: i | append: '_note'
+                      assign routine_product = block.settings[product_key]
+                      assign routine_note = block.settings[note_key]
+                    -%}
+                    {%- if routine_product != blank -%}
+                      {%- assign step_number = step_number | plus: 1 -%}
+                      <li class="skin-quiz__step-item" style="--i: {{ step_number | plus: 1 }}">
+                        <span class="skin-quiz__step-media">
+                          {%- if routine_product.featured_image != blank -%}
+                            {{ routine_product.featured_image
+                              | image_url: width: 220
+                              | image_tag:
+                                loading: 'lazy',
+                                widths: '80, 120, 160, 220',
+                                sizes: '(min-width: 750px) 72px, 56px',
+                                alt: '',
+                                class: 'skin-quiz__step-image'
+                            }}
+                          {%- else -%}
+                            {{ 'product-1' | placeholder_svg_tag: 'skin-quiz__step-image placeholder' }}
+                          {%- endif -%}
+                        </span>
+                        <span class="skin-quiz__step-body">
+                          {%- comment -%}
+                            The routine is ordered, so the step number stays even now
+                            that the image carries the visual weight — but a routine of
+                            one has no order to communicate, and a lone number reads as
+                            a glitch.
+                          {%- endcomment -%}
+                          {%- if routine_count > 1 -%}
+                            <span class="skin-quiz__step-index" aria-hidden="true">{{ step_number }}</span>
+                          {%- endif -%}
+                          <a class="skin-quiz__step-name" href="{{ routine_product.url }}">{{ routine_product.title }}</a>
+                          {%- if routine_note != blank -%}
+                            <span class="skin-quiz__step-note">{{ routine_note }}</span>
+                          {%- endif -%}
+                        </span>
+                        <span class="skin-quiz__step-price">
+                          {{ routine_product.selected_or_first_available_variant.price | money }}
+                        </span>
+                      </li>
+                    {%- endif -%}
+                  {%- endfor -%}
+                </ol>
+
+                <div class="skin-quiz__result-actions" style="--i: 5">
+                  <button
+                    type="button"
+                    class="button skin-quiz__add"
+                    data-quiz-add
+                    data-variant-ids="{{ variant_ids }}"
+                  >
+                    {{ 'sections.skin-quiz.add_routine' | t }} · {{ routine_total | money }}
+                  </button>
+                  <button type="button" class="skin-quiz__restart link" data-quiz-restart>
+                    {{ 'sections.skin-quiz.restart' | t }}
+                  </button>
+                </div>
+                <div class="skin-quiz__error" data-quiz-error role="alert" hidden></div>
+              {%- else -%}
+                <div class="skin-quiz__result-actions" style="--i: 5">
+                  <button type="button" class="skin-quiz__restart link" data-quiz-restart>
+                    {{ 'sections.skin-quiz.restart' | t }}
+                  </button>
+                </div>
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+        </div>
+      </skin-quiz>
+    {%- endif -%}
+    </div>
+  </div>
+{%- if section.settings.show_divider %}</div>{% endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.skin-quiz.name",
+  "tag": "section",
+  "class": "section",
+  "disabled_on": {
+    "groups": ["header", "footer", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "default": "Which routine is yours?",
+      "label": "t:sections.all.heading.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "options": [
+        { "value": "h2", "label": "t:sections.all.heading_size.options__1.label" },
+        { "value": "h1", "label": "t:sections.all.heading_size.options__2.label" },
+        { "value": "h0", "label": "t:sections.all.heading_size.options__3.label" }
+      ],
+      "default": "h1",
+      "label": "t:sections.all.heading_size.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "options": [
+        { "value": "h1", "label": "t:sections.all.heading_tag.options__1.label" },
+        { "value": "h2", "label": "t:sections.all.heading_tag.options__2.label" },
+        { "value": "h3", "label": "t:sections.all.heading_tag.options__3.label" },
+        { "value": "h4", "label": "t:sections.all.heading_tag.options__4.label" },
+        { "value": "h5", "label": "t:sections.all.heading_tag.options__5.label" },
+        { "value": "h6", "label": "t:sections.all.heading_tag.options__6.label" },
+        { "value": "div", "label": "t:sections.all.heading_tag.options__7.label" },
+        { "value": "span", "label": "t:sections.all.heading_tag.options__8.label" },
+        { "value": "p", "label": "t:sections.all.heading_tag.options__9.label" }
+      ],
+      "default": "h2",
+      "label": "t:sections.all.heading_tag.label",
+      "info": "t:sections.all.heading_tag.info"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "default": "The four-question edit",
+      "label": "t:sections.all.subheading.label"
+    },
+    {
+      "type": "richtext",
+      "id": "intro_text",
+      "default": "<p>Four questions, one screen each, always a way back — and the result comes before we ask for an email.</p>",
+      "label": "t:sections.skin-quiz.settings.intro_text.label"
+    },
+    {
+      "type": "text",
+      "id": "intro_button_label",
+      "default": "Take the quiz",
+      "label": "t:sections.skin-quiz.settings.intro_button_label.label"
+    },
+    {
+      "type": "select",
+      "id": "start_attention",
+      "options": [
+        { "value": "none", "label": "t:sections.skin-quiz.settings.start_attention.options__1.label" },
+        { "value": "arrow", "label": "t:sections.skin-quiz.settings.start_attention.options__2.label" },
+        { "value": "pulse", "label": "t:sections.skin-quiz.settings.start_attention.options__3.label" }
+      ],
+      "default": "none",
+      "label": "t:sections.skin-quiz.settings.start_attention.label",
+      "info": "t:sections.skin-quiz.settings.start_attention.info"
+    },
+    {
+      "type": "color",
+      "id": "start_attention_color",
+      "label": "t:sections.skin-quiz.settings.start_attention_color.label",
+      "info": "t:sections.skin-quiz.settings.start_attention_color.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_progress",
+      "default": true,
+      "label": "t:sections.skin-quiz.settings.show_progress.label"
+    },
+    {
+      "type": "select",
+      "id": "background_effect",
+      "options": [
+        { "value": "none", "label": "t:sections.skin-quiz.settings.background_effect.options__1.label" },
+        { "value": "aurora", "label": "t:sections.skin-quiz.settings.background_effect.options__2.label" },
+        { "value": "mesh", "label": "t:sections.skin-quiz.settings.background_effect.options__3.label" },
+        { "value": "rings", "label": "t:sections.skin-quiz.settings.background_effect.options__4.label" },
+        { "value": "sheen", "label": "t:sections.skin-quiz.settings.background_effect.options__5.label" },
+        { "value": "liquid", "label": "t:sections.skin-quiz.settings.background_effect.options__6.label" },
+        { "value": "silk", "label": "t:sections.skin-quiz.settings.background_effect.options__7.label" },
+        { "value": "grid", "label": "t:sections.skin-quiz.settings.background_effect.options__8.label" },
+        { "value": "waves", "label": "t:sections.skin-quiz.settings.background_effect.options__9.label" },
+        { "value": "image", "label": "t:sections.skin-quiz.settings.background_effect.options__10.label" }
+      ],
+      "default": "aurora",
+      "label": "t:sections.skin-quiz.settings.background_effect.label",
+      "info": "t:sections.skin-quiz.settings.background_effect.info"
+    },
+    {
+      "type": "select",
+      "id": "background_intensity",
+      "options": [
+        { "value": "subtle", "label": "t:sections.skin-quiz.settings.background_intensity.options__1.label" },
+        { "value": "medium", "label": "t:sections.skin-quiz.settings.background_intensity.options__2.label" },
+        { "value": "strong", "label": "t:sections.skin-quiz.settings.background_intensity.options__3.label" }
+      ],
+      "default": "medium",
+      "label": "t:sections.skin-quiz.settings.background_intensity.label",
+      "info": "t:sections.skin-quiz.settings.background_intensity.info"
+    },
+    {
+      "type": "color",
+      "id": "background_effect_color",
+      "label": "t:sections.skin-quiz.settings.background_effect_color.label",
+      "info": "t:sections.skin-quiz.settings.background_effect_color.info"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "t:sections.skin-quiz.settings.background_image.label",
+      "info": "t:sections.skin-quiz.settings.background_image.info"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "options": [
+        { "value": "narrow", "label": "t:sections.skin-quiz.settings.section_width.options__1.label" },
+        { "value": "default", "label": "t:sections.skin-quiz.settings.section_width.options__2.label" },
+        { "value": "full", "label": "t:sections.skin-quiz.settings.section_width.options__3.label" }
+      ],
+      "default": "default",
+      "label": "t:sections.skin-quiz.settings.section_width.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_divider",
+      "default": false,
+      "label": "t:sections.all.show_divider.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.highlight.header.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_highlight",
+      "default": false,
+      "label": "t:sections.all.highlight.enable.label"
+    },
+    {
+      "type": "select",
+      "id": "highlight_style",
+      "options": [
+        { "value": "marker", "label": "t:sections.all.highlight.style.options__1.label" },
+        { "value": "circle", "label": "t:sections.all.highlight.style.options__2.label" },
+        { "value": "underline", "label": "t:sections.all.highlight.style.options__3.label" },
+        { "value": "bold-underline", "label": "t:sections.all.highlight.style.options__4.label" },
+        { "value": "modern-underline", "label": "t:sections.all.highlight.style.options__5.label" },
+        { "value": "sketch-underline", "label": "t:sections.all.highlight.style.options__6.label" },
+        { "value": "squiggle", "label": "t:sections.all.highlight.style.options__7.label" },
+        { "value": "heavy-squiggle", "label": "t:sections.all.highlight.style.options__8.label" },
+        { "value": "solid-color", "label": "t:sections.all.highlight.style.options__9.label" }
+      ],
+      "default": "marker",
+      "label": "t:sections.all.highlight.style.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.colors.header.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "use_custom_colors",
+      "default": false,
+      "label": "t:sections.all.colors.use_custom_colors.label"
+    },
+    {
+      "type": "color",
+      "id": "colors_text",
+      "default": "#1a1b18",
+      "label": "t:sections.all.colors.colors_text.label"
+    },
+    {
+      "type": "color",
+      "id": "colors_background",
+      "default": "#fbf7f1",
+      "label": "t:sections.all.colors.colors_background.label"
+    },
+    {
+      "type": "color",
+      "id": "colors_button_label",
+      "default": "#ffffff",
+      "label": "t:sections.all.colors.colors_button_label.label"
+    },
+    {
+      "type": "color",
+      "id": "colors_button_background",
+      "default": "#1a1b18",
+      "label": "t:sections.all.colors.colors_button_background.label"
+    },
+    {
+      "type": "color",
+      "id": "colors_highlight",
+      "default": "#d9b97a",
+      "label": "t:sections.all.colors.colors_highlight.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.padding.header.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top.label",
+      "default": 52
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom.label",
+      "default": 52
+    }
+  ],
+  "blocks": [
+    {
+      "type": "question",
+      "name": "t:sections.skin-quiz.blocks.question.name",
+      "limit": 6,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "default": "How does your skin feel by midday?",
+          "label": "t:sections.skin-quiz.blocks.question.settings.title.label"
+        },
+        {
+          "type": "text",
+          "id": "help",
+          "label": "t:sections.skin-quiz.blocks.question.settings.help.label"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.skin-quiz.blocks.question.settings.option_1.content"
+        },
+        {
+          "type": "text",
+          "id": "option_1_label",
+          "default": "Tight and dry",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_label.label"
+        },
+        {
+          "type": "text",
+          "id": "option_1_hint",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_hint.label"
+        },
+        {
+          "type": "select",
+          "id": "option_1_result",
+          "options": [
+            { "value": "1", "label": "t:sections.skin-quiz.result_ref.options__1.label" },
+            { "value": "2", "label": "t:sections.skin-quiz.result_ref.options__2.label" },
+            { "value": "3", "label": "t:sections.skin-quiz.result_ref.options__3.label" },
+            { "value": "4", "label": "t:sections.skin-quiz.result_ref.options__4.label" },
+            { "value": "5", "label": "t:sections.skin-quiz.result_ref.options__5.label" },
+            { "value": "6", "label": "t:sections.skin-quiz.result_ref.options__6.label" }
+          ],
+          "default": "1",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_result.label",
+          "info": "t:sections.skin-quiz.blocks.question.settings.option_result.info"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.skin-quiz.blocks.question.settings.option_2.content"
+        },
+        {
+          "type": "text",
+          "id": "option_2_label",
+          "default": "Shiny through the T-zone",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_label.label"
+        },
+        {
+          "type": "text",
+          "id": "option_2_hint",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_hint.label"
+        },
+        {
+          "type": "select",
+          "id": "option_2_result",
+          "options": [
+            { "value": "1", "label": "t:sections.skin-quiz.result_ref.options__1.label" },
+            { "value": "2", "label": "t:sections.skin-quiz.result_ref.options__2.label" },
+            { "value": "3", "label": "t:sections.skin-quiz.result_ref.options__3.label" },
+            { "value": "4", "label": "t:sections.skin-quiz.result_ref.options__4.label" },
+            { "value": "5", "label": "t:sections.skin-quiz.result_ref.options__5.label" },
+            { "value": "6", "label": "t:sections.skin-quiz.result_ref.options__6.label" }
+          ],
+          "default": "2",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_result.label"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.skin-quiz.blocks.question.settings.option_3.content"
+        },
+        {
+          "type": "text",
+          "id": "option_3_label",
+          "default": "Red or reactive",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_label.label"
+        },
+        {
+          "type": "text",
+          "id": "option_3_hint",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_hint.label"
+        },
+        {
+          "type": "select",
+          "id": "option_3_result",
+          "options": [
+            { "value": "1", "label": "t:sections.skin-quiz.result_ref.options__1.label" },
+            { "value": "2", "label": "t:sections.skin-quiz.result_ref.options__2.label" },
+            { "value": "3", "label": "t:sections.skin-quiz.result_ref.options__3.label" },
+            { "value": "4", "label": "t:sections.skin-quiz.result_ref.options__4.label" },
+            { "value": "5", "label": "t:sections.skin-quiz.result_ref.options__5.label" },
+            { "value": "6", "label": "t:sections.skin-quiz.result_ref.options__6.label" }
+          ],
+          "default": "3",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_result.label"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.skin-quiz.blocks.question.settings.option_4.content"
+        },
+        {
+          "type": "text",
+          "id": "option_4_label",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_label.label"
+        },
+        {
+          "type": "text",
+          "id": "option_4_hint",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_hint.label"
+        },
+        {
+          "type": "select",
+          "id": "option_4_result",
+          "options": [
+            { "value": "1", "label": "t:sections.skin-quiz.result_ref.options__1.label" },
+            { "value": "2", "label": "t:sections.skin-quiz.result_ref.options__2.label" },
+            { "value": "3", "label": "t:sections.skin-quiz.result_ref.options__3.label" },
+            { "value": "4", "label": "t:sections.skin-quiz.result_ref.options__4.label" },
+            { "value": "5", "label": "t:sections.skin-quiz.result_ref.options__5.label" },
+            { "value": "6", "label": "t:sections.skin-quiz.result_ref.options__6.label" }
+          ],
+          "default": "1",
+          "label": "t:sections.skin-quiz.blocks.question.settings.option_result.label"
+        }
+      ]
+    },
+    {
+      "type": "result",
+      "name": "t:sections.skin-quiz.blocks.result.name",
+      "limit": 6,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.skin-quiz.blocks.result.settings.order_note.content"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "heading",
+          "default": "Your barrier needs rebuilding",
+          "label": "t:sections.all.heading.label"
+        },
+        {
+          "type": "richtext",
+          "id": "description",
+          "default": "<p>Three steps, one active per formula. Start here and give it eight weeks.</p>",
+          "label": "t:sections.all.text.label"
+        },
+        {
+          "type": "product",
+          "id": "product_1",
+          "label": "t:sections.skin-quiz.blocks.result.settings.product_1.label"
+        },
+        {
+          "type": "text",
+          "id": "product_1_note",
+          "label": "t:sections.skin-quiz.blocks.result.settings.product_note.label"
+        },
+        {
+          "type": "product",
+          "id": "product_2",
+          "label": "t:sections.skin-quiz.blocks.result.settings.product_2.label"
+        },
+        {
+          "type": "text",
+          "id": "product_2_note",
+          "label": "t:sections.skin-quiz.blocks.result.settings.product_note.label"
+        },
+        {
+          "type": "product",
+          "id": "product_3",
+          "label": "t:sections.skin-quiz.blocks.result.settings.product_3.label"
+        },
+        {
+          "type": "text",
+          "id": "product_3_note",
+          "label": "t:sections.skin-quiz.blocks.result.settings.product_note.label"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.skin-quiz.presets.name",
+      "blocks": [
+        { "type": "question" },
+        { "type": "question" },
+        { "type": "result" },
+        { "type": "result" },
+        { "type": "result" }
+      ]
+    }
+  ]
+}
+{% endschema %}

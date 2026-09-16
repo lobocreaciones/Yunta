@@ -1,0 +1,496 @@
+{%- liquid
+  # A peek only helps when there is actually a card beyond the fold.
+  assign columns_mobile = section.settings.columns_mobile | plus: 0
+  assign peek_desktop = 0
+  assign peek_mobile = 0
+  if section.blocks.size > section.settings.columns_desktop
+    assign peek_desktop = 48
+  endif
+  if section.blocks.size > columns_mobile
+    assign peek_mobile = 48
+  endif
+
+  # Three rail widths, not two: bleed keeps the heading on the page gutter while
+  # the row itself runs to the screen edge. The gutter belongs to the wrapper
+  # while the row stays in the page column, and to the list once it bleeds,
+  # because only padding on the scroll container survives past the margin. A
+  # section already set to full width has no gutter left to keep, so it takes
+  # neither.
+  assign rail_width = 'page-width'
+  assign grid_bleed = ''
+  if section.settings.full_width
+    assign rail_width = ''
+  elsif section.settings.edge_to_edge
+    assign rail_width = ''
+    assign grid_bleed = ' video-collection__grid--bleed'
+  endif
+-%}
+
+{%- style -%}
+  #shopify-section-{{ section.id }} {
+    --section-padding-top: {{ section.settings.padding_top }}px;
+    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
+    --color-highlight: {{ section.settings.colors_highlight.red }}, {{ section.settings.colors_highlight.green }}, {{ section.settings.colors_highlight.blue }};
+    --vc-columns: {{ section.settings.columns_desktop }};
+    --vc-columns-mobile: {{ section.settings.columns_mobile }};
+    --vc-ratio: {{ section.settings.card_ratio }};
+    --vc-gap: {{ section.settings.card_gap | divided_by: 10.0 }}rem;
+    --vc-peek: {{ peek_desktop }}px;
+    --vc-peek-mobile: {{ peek_mobile }}px;
+  }
+{%- endstyle -%}
+
+{{ 'section-video-collection.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'video-collection.js' | asset_url }}" defer="defer"></script>
+
+<div class="section--padding{% if section.settings.show_divider %} section--divider{% endif %}">
+  <div class="video-collection">
+    <div class="video-collection__header {{ section.settings.heading_alignment }}{% unless section.settings.full_width %} page-width{% endunless %}">
+      <{{ section.settings.heading_tag }} class="title {{ section.settings.heading_size }}">
+        {%- render 'highlight-text',
+          hl_input: section.settings.heading,
+          hl_style: section.settings.highlight_style,
+          hl_enable: section.settings.enable_highlight,
+          hl_animateWrap: true -%}
+      </{{ section.settings.heading_tag }}>
+      {%- if section.settings.subheading != blank -%}
+        <p class="video-collection__subheading">{{ section.settings.subheading }}</p>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%}
+      A bleeding rail spans the full viewport while the list inside it keeps the
+      page gutter, so a scrolling row runs past the gutter instead of being
+      clipped at it.
+    {%- endcomment -%}
+    <div class="video-collection__rail{% if rail_width != blank %} {{ rail_width }}{% endif %}">
+      <ul
+        class="video-collection__grid{{ grid_bleed }}{% if section.settings.horizontal_scroll %} video-collection__grid--scroll{% endif %}{% if section.settings.swipe_on_mobile %} video-collection__grid--swipe{% endif %}"
+        role="list"
+      >
+        {%- for block in section.blocks -%}
+          {%- liquid
+            assign card_product = block.settings.product
+            assign poster = block.settings.cover_image | default: block.settings.video.preview_image
+            assign card_title = block.settings.title | default: card_product.title
+            assign card_url = block.settings.link | default: card_product.url
+
+            # Resolved up front on purpose: Liquid binds `and`/`or` right-to-left, so
+            # one combined condition would hide the price whenever the title is off.
+            assign show_card_title = false
+            assign show_card_price = false
+            if section.settings.show_title and card_title != blank
+              assign show_card_title = true
+            endif
+            if section.settings.show_price and card_product != blank
+              assign show_card_price = true
+            endif
+
+            # Quick view needs a real product to fetch; a hand-typed link cannot
+            # supply one, so those cards keep navigating instead — including when
+            # a link overrides the product's own URL. Compared to blank, not
+            # truthiness: an empty picker resolves to an empty string, which
+            # Liquid treats as true.
+            assign use_quick_view = false
+            if settings.quick_view_enabled and section.settings.enable_quick_view
+              if card_product != blank and block.settings.link == blank
+                assign use_quick_view = true
+              endif
+            endif
+          -%}
+          <li class="video-collection__item" {{ block.shopify_attributes }}>
+            <div class="card-wrapper video-collection__wrapper">
+            <a
+              class="video-collection__card"
+              {% if card_url != blank %}href="{{ card_url }}"{% endif %}
+              {% if use_quick_view %}data-quick-view="true"{% endif %}
+            >
+              <div class="video-collection__media">
+                {%- if poster != blank -%}
+                  {{ poster
+                    | image_url: width: 800
+                    | image_tag:
+                      loading: 'lazy',
+                      widths: '200, 300, 400, 600, 800',
+                      sizes: '(min-width: 750px) calc(100vw / 5), 50vw',
+                      alt: card_title | escape
+                  }}
+                {%- else -%}
+                  {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg placeholder' }}
+                {%- endif -%}
+
+                {%- if block.settings.video != blank -%}
+                  {%- comment -%}
+                    The clip stays inside <template> so nothing downloads until the card
+                    is reached — inert content needs no preload hint.
+                  {%- endcomment -%}
+                  <shoppable-video data-autoplay="{{ section.settings.autoplay }}">
+                    <template>
+                      {{ block.settings.video | video_tag: image_size: '400x', muted: true, loop: true, controls: false }}
+                    </template>
+                  </shoppable-video>
+                  <button
+                    type="button"
+                    class="video-collection__sound"
+                    aria-pressed="false"
+                    aria-label="{{ 'sections.video-collection.toggle_sound' | t }}"
+                  >
+                    <svg class="video-collection__sound-off" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M3 9v6h4l5 5V4L7 9H3z" />
+                      <path d="M15.5 8.5 21 14m0-5.5L15.5 14" stroke="currentColor" stroke-width="2" fill="none" />
+                    </svg>
+                    <svg class="video-collection__sound-on" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z" />
+                      <path d="M16 4.5a8 8 0 0 1 0 15" stroke="currentColor" stroke-width="2" fill="none" />
+                    </svg>
+                  </button>
+                  {%- unless section.settings.autoplay -%}
+                    {%- comment -%}
+                      Without autoplay the clip needs its own trigger, so that a plain
+                      click on the card stays unambiguously "open the product".
+                      aria-pressed carries the play/pause state; there is no separate
+                      pause label in the locales.
+                    {%- endcomment -%}
+                    <button
+                      type="button"
+                      class="video-collection__play"
+                      aria-pressed="false"
+                      aria-label="{{ 'accessibility.play_video' | t }}"
+                    >
+                      <svg class="video-collection__play-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                      <svg class="video-collection__pause-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                        <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
+                      </svg>
+                    </button>
+                  {%- endunless -%}
+                {%- endif -%}
+
+                {%- if block.settings.label != blank -%}
+                  <span class="video-collection__label">{{ block.settings.label }}</span>
+                {%- endif -%}
+
+                {%- if show_card_title or show_card_price -%}
+                  <span class="video-collection__meta">
+                    {%- if show_card_title -%}
+                      <span class="video-collection__title">{{ card_title }}</span>
+                    {%- endif -%}
+                    {%- if show_card_price -%}
+                      <span class="video-collection__price">
+                        {% render 'price', product: card_product %}
+                      </span>
+                    {%- endif -%}
+                  </span>
+                {%- endif -%}
+              </div>
+            </a>
+            {%- if use_quick_view -%}
+              <quick-view-drawer>
+                <details>
+                  <summary class="quick-view__summary" tabindex="-1">
+                    <span class="visually-hidden">{{ 'products.product.quick_view' | t }}</span>
+                    {% render 'icon', icon: 'search-alt' %}
+                  </summary>
+                  <quick-view class="quick-view" data-product-url="{{ card_product.url }}">
+                    <div
+                      role="dialog"
+                      aria-label="{{ 'products.product.choose_product_options' | t: product_name: card_product.title | escape }}"
+                      aria-modal="true"
+                      class="quick-view__content ignore-empty"
+                      tabindex="-1"
+                    ></div>
+                  </quick-view>
+                </details>
+              </quick-view-drawer>
+            {%- endif -%}
+            </div>
+          </li>
+        {%- endfor -%}
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.video-collection.name",
+  "tag": "section",
+  "class": "section",
+  "disabled_on": {
+    "groups": ["header", "footer", "custom.overlay"]
+  },
+  "max_blocks": 12,
+  "settings": [
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "default": "In real routines",
+      "label": "t:sections.all.heading.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "options": [
+        { "value": "h2", "label": "t:sections.all.heading_size.options__1.label" },
+        { "value": "h1", "label": "t:sections.all.heading_size.options__2.label" },
+        { "value": "h0", "label": "t:sections.all.heading_size.options__3.label" }
+      ],
+      "default": "h1",
+      "label": "t:sections.all.heading_size.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "options": [
+        { "value": "left", "label": "t:sections.all.heading_alignment.options__1.label" },
+        { "value": "center", "label": "t:sections.all.heading_alignment.options__2.label" },
+        { "value": "right", "label": "t:sections.all.heading_alignment.options__3.label" }
+      ],
+      "default": "left",
+      "label": "t:sections.all.heading_alignment.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "options": [
+        { "value": "h1", "label": "t:sections.all.heading_tag.options__1.label" },
+        { "value": "h2", "label": "t:sections.all.heading_tag.options__2.label" },
+        { "value": "h3", "label": "t:sections.all.heading_tag.options__3.label" },
+        { "value": "h4", "label": "t:sections.all.heading_tag.options__4.label" },
+        { "value": "h5", "label": "t:sections.all.heading_tag.options__5.label" },
+        { "value": "h6", "label": "t:sections.all.heading_tag.options__6.label" },
+        { "value": "div", "label": "t:sections.all.heading_tag.options__7.label" },
+        { "value": "span", "label": "t:sections.all.heading_tag.options__8.label" },
+        { "value": "p", "label": "t:sections.all.heading_tag.options__9.label" }
+      ],
+      "default": "h2",
+      "label": "t:sections.all.heading_tag.label",
+      "info": "t:sections.all.heading_tag.info"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "default": "Shoppable clips · tagged products",
+      "label": "t:sections.all.subheading.label"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 5,
+      "label": "t:sections.video-collection.settings.columns_desktop.label"
+    },
+    {
+      "type": "select",
+      "id": "card_ratio",
+      "options": [
+        { "value": "9/16", "label": "t:sections.video-collection.settings.card_ratio.options__1.label" },
+        { "value": "3/4", "label": "t:sections.video-collection.settings.card_ratio.options__2.label" },
+        { "value": "1/1", "label": "t:sections.video-collection.settings.card_ratio.options__3.label" }
+      ],
+      "default": "9/16",
+      "label": "t:sections.video-collection.settings.card_ratio.label"
+    },
+    {
+      "type": "range",
+      "id": "card_gap",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 14,
+      "label": "t:sections.video-collection.settings.card_gap.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "default": true,
+      "label": "t:sections.video-collection.settings.autoplay.label",
+      "info": "t:sections.video-collection.settings.autoplay.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_title",
+      "default": true,
+      "label": "t:sections.video-collection.settings.show_title.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_price",
+      "default": true,
+      "label": "t:sections.video-collection.settings.show_price.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_quick_view",
+      "default": true,
+      "label": "t:sections.all.product_card.enable_quick_view.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "horizontal_scroll",
+      "default": false,
+      "label": "t:sections.all.horizontal_scroll_on_desktop.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "edge_to_edge",
+      "default": true,
+      "label": "t:sections.all.edge_to_edge.label",
+      "info": "t:sections.all.edge_to_edge.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "default": false,
+      "label": "t:sections.all.full_width.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_divider",
+      "default": false,
+      "label": "t:sections.all.show_divider.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.mobile_layout.header.content"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "options": [
+        { "value": "1", "label": "t:sections.all.mobile_layout.columns_mobile.options__1.label" },
+        { "value": "2", "label": "t:sections.all.mobile_layout.columns_mobile.options__2.label" }
+      ],
+      "default": "2",
+      "label": "t:sections.all.mobile_layout.columns_mobile.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "swipe_on_mobile",
+      "default": true,
+      "label": "t:sections.all.mobile_layout.swipe_on_mobile.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.highlight.header.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_highlight",
+      "default": false,
+      "label": "t:sections.all.highlight.enable.label"
+    },
+    {
+      "type": "select",
+      "id": "highlight_style",
+      "options": [
+        { "value": "marker", "label": "t:sections.all.highlight.style.options__1.label" },
+        { "value": "circle", "label": "t:sections.all.highlight.style.options__2.label" },
+        { "value": "underline", "label": "t:sections.all.highlight.style.options__3.label" },
+        { "value": "bold-underline", "label": "t:sections.all.highlight.style.options__4.label" },
+        { "value": "modern-underline", "label": "t:sections.all.highlight.style.options__5.label" },
+        { "value": "sketch-underline", "label": "t:sections.all.highlight.style.options__6.label" },
+        { "value": "squiggle", "label": "t:sections.all.highlight.style.options__7.label" },
+        { "value": "heavy-squiggle", "label": "t:sections.all.highlight.style.options__8.label" },
+        { "value": "solid-color", "label": "t:sections.all.highlight.style.options__9.label" }
+      ],
+      "default": "marker",
+      "label": "t:sections.all.highlight.style.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.colors.header.content"
+    },
+    {
+      "type": "color",
+      "id": "colors_highlight",
+      "default": "#d9b97a",
+      "label": "t:sections.all.colors.colors_highlight.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.padding.header.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top.label",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom.label",
+      "default": 36
+    }
+  ],
+  "blocks": [
+    {
+      "type": "video_card",
+      "name": "t:sections.video-collection.blocks.video_card.name",
+      "settings": [
+        {
+          "type": "video",
+          "id": "video",
+          "label": "t:sections.video-collection.blocks.video_card.settings.video.label",
+          "info": "t:sections.video-collection.blocks.video_card.settings.video.info"
+        },
+        {
+          "type": "image_picker",
+          "id": "cover_image",
+          "label": "t:sections.video-collection.blocks.video_card.settings.cover_image.label",
+          "info": "t:sections.video-collection.blocks.video_card.settings.cover_image.info"
+        },
+        {
+          "type": "product",
+          "id": "product",
+          "label": "t:sections.video-collection.blocks.video_card.settings.product.label",
+          "info": "t:sections.video-collection.blocks.video_card.settings.product.info"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.video-collection.blocks.video_card.settings.title.label",
+          "info": "t:sections.video-collection.blocks.video_card.settings.title.info"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.video-collection.blocks.video_card.settings.label.label",
+          "info": "t:sections.video-collection.blocks.video_card.settings.label.info"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.video-collection.blocks.video_card.settings.link.label",
+          "info": "t:sections.video-collection.blocks.video_card.settings.link.info"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.video-collection.presets.name",
+      "blocks": [
+        { "type": "video_card" },
+        { "type": "video_card" },
+        { "type": "video_card" },
+        { "type": "video_card" },
+        { "type": "video_card" }
+      ]
+    }
+  ]
+}
+{% endschema %}

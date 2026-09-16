@@ -1,0 +1,386 @@
+.video-collection__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 2.4rem;
+}
+
+.video-collection__header:not(:has(.title:not(:empty))):not(:has(.video-collection__subheading:not(:empty))) {
+  display: none;
+}
+
+.video-collection__header .title {
+  margin: 0;
+}
+
+.video-collection__subheading {
+  margin: 0;
+  color: rgba(var(--color-base-text), 0.65);
+}
+
+.video-collection__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--vc-columns-mobile), minmax(0, 1fr));
+  gap: var(--vc-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+  Edge to edge: the list spans the viewport and carries the page gutter as its
+  own padding, so the row starts on the page column and then runs off the screen
+  instead of stopping at the margin. The gutter has to sit on the scrolling
+  element — a scroll container clips at its padding box, so a wrapper around it
+  could not reach — and that same padding puts the closing gutter inside the
+  scrollable area, which makes both ends match at any viewport.
+  Track widths are unchanged: a percentage of the list's content box, which this
+  padding leaves exactly equal to the page column.
+*/
+.video-collection__grid--bleed {
+  --vc-gutter: calc((100% - min(100%, var(--page-width))) / 2 + 1.5rem);
+  padding-inline: var(--vc-gutter);
+  scroll-padding-inline-start: var(--vc-gutter);
+}
+
+/*
+  Rail = one row that overflows and scrolls. Track width must be a fixed calc:
+  a minmax() with a flexible minimum lets the surplus cards squeeze into the
+  container instead of overflowing, which cancels the scroll.
+  The mobile rail and the desktop rail are separate opt-ins, so neither
+  breakpoint inherits the other's behaviour.
+*/
+/*
+  The same styled bar as the .slider rails: this rail has no arrow controls,
+  so a mouse without a trackpad has no other way to move the row.
+*/
+.video-collection__grid--swipe,
+.video-collection__grid--scroll {
+  scrollbar-width: thin;
+}
+
+.video-collection__grid--swipe::-webkit-scrollbar,
+.video-collection__grid--scroll::-webkit-scrollbar {
+  height: 0.9rem;
+  appearance: none;
+  background-clip: padding-box;
+  border: 0.3rem solid transparent;
+  border-radius: 1.6rem;
+  background-color: rgba(var(--color-border), 0.3);
+}
+
+.video-collection__grid--swipe::-webkit-scrollbar-thumb,
+.video-collection__grid--scroll::-webkit-scrollbar-thumb {
+  border: 0.3rem solid transparent;
+  background-clip: padding-box;
+  border-radius: 1.6rem;
+  background-color: rgb(var(--color-border));
+}
+
+.video-collection__grid--swipe > .video-collection__item,
+.video-collection__grid--scroll > .video-collection__item {
+  scroll-snap-align: start;
+}
+
+/*
+  Track width leaves exactly --vc-peek of the next card showing, so the row
+  advertises that it scrolls. Solving n*track + n*gap + peek = 100% keeps that
+  sliver the same width at any column count — subtracting the peek per track
+  instead would scale it with the number of columns. On a bleeding row the
+  sliver reads wider by the gutter, because the row is measured inside the
+  gutter but seen out to the screen edge.
+  Liquid zeroes the peek when every card already fits, so a full row never
+  reserves space for a card that isn't there.
+*/
+@media screen and (max-width: 749px) {
+  .video-collection__grid--swipe {
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: calc(
+      (100% - var(--vc-columns-mobile) * var(--vc-gap) - var(--vc-peek-mobile)) / var(--vc-columns-mobile)
+    );
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+}
+
+@media screen and (min-width: 750px) {
+  .video-collection__grid {
+    grid-template-columns: repeat(var(--vc-columns), minmax(0, 1fr));
+  }
+
+  .video-collection__grid--bleed {
+    --vc-gutter: calc((100% - min(100%, var(--page-width))) / 2 + 5rem);
+  }
+
+  .video-collection__grid--scroll {
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: calc(
+      (100% - var(--vc-columns) * var(--vc-gap) - var(--vc-peek)) / var(--vc-columns)
+    );
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+}
+
+.video-collection__wrapper {
+  position: relative;
+  height: 100%;
+}
+
+.video-collection__card {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--card-radius);
+  background-color: rgb(var(--color-placeholder));
+  text-decoration: none;
+  color: rgb(var(--color-base-text));
+}
+
+.video-collection__media {
+  position: relative;
+  aspect-ratio: var(--vc-ratio);
+  overflow: hidden;
+}
+
+.video-collection__media img,
+.video-collection__media video,
+.video-collection__media .placeholder-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.video-collection__media img {
+  transition: transform 0.5s ease;
+}
+
+/* The poster stays under the video so the swap never flashes the card background. */
+.video-collection__media video {
+  z-index: 1;
+}
+
+@media (hover: hover) {
+  .video-collection__card:hover .video-collection__media img {
+    transform: scale(1.04);
+  }
+}
+
+.video-collection__label {
+  position: absolute;
+  top: 1.2rem;
+  left: 1.2rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(100% - 6rem);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--button-radius);
+  background-color: rgba(var(--color-base-text), 0.78);
+  color: rgb(var(--color-base-background));
+  font-size: 1.1rem;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  /* Leaves room for the sound button in the opposite corner. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-collection__meta {
+  position: absolute;
+  z-index: 3;
+  left: 1.2rem;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--button-radius);
+  background-color: rgba(var(--color-base-background), 0.94);
+  color: rgb(var(--color-base-text));
+}
+
+/*
+  Two-up mobile leaves the bar around 118px wide — a long price and a title
+  cannot share that row, so they stack instead of crushing each other.
+*/
+@media screen and (max-width: 749px) {
+  .video-collection__meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    padding: 0.7rem 0.9rem;
+  }
+}
+
+.video-collection__title {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.video-collection__price {
+  white-space: nowrap;
+  font-size: 1.3rem;
+}
+
+.video-collection__price .price {
+  font-size: inherit;
+}
+
+.video-collection__price .price__container {
+  display: block;
+}
+
+shoppable-video {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+/*
+  Explicit play affordance for the click-to-play mode: without it a plain click
+  would have to mean both "watch this" and "open the product".
+*/
+.video-collection__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5.2rem;
+  height: 5.2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: rgba(var(--color-base-text), 0.72);
+  color: rgb(var(--color-base-background));
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.video-collection__play svg {
+  width: 2.4rem;
+  height: 2.4rem;
+  fill: currentColor;
+}
+
+/* Nudged to sit optically centred inside the circle; the pause bars are symmetric. */
+.video-collection__play .video-collection__play-icon {
+  margin-left: 0.2rem;
+}
+
+@media (hover: hover) {
+  .video-collection__play:hover {
+    background-color: rgb(var(--color-base-text));
+  }
+}
+
+/* aria-pressed carries the play/pause state, mirroring the sound toggle. */
+.video-collection__play .video-collection__pause-icon,
+.video-collection__play[aria-pressed='true'] .video-collection__play-icon {
+  display: none;
+}
+
+.video-collection__play[aria-pressed='true'] .video-collection__pause-icon {
+  display: block;
+}
+
+/*
+  While the clip plays the button steps back so it does not sit on the video,
+  but it never disappears — it is the only pause control the card has.
+*/
+.video-collection__card.is-playing .video-collection__play {
+  opacity: 0.35;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.video-collection__card.is-playing .video-collection__play:hover,
+.video-collection__card.is-playing .video-collection__play:focus-visible {
+  opacity: 1;
+}
+
+/* Sound toggle only appears once a clip is actually playing. */
+.video-collection__sound {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+  z-index: 4;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: rgba(var(--color-base-text), 0.78);
+  color: rgb(var(--color-base-background));
+  cursor: pointer;
+}
+
+.video-collection__card.is-playing .video-collection__sound {
+  display: flex;
+}
+
+.video-collection__sound svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  fill: currentColor;
+}
+
+/* aria-pressed is the single source of truth for which icon shows. */
+.video-collection__sound .video-collection__sound-on,
+.video-collection__sound[aria-pressed='true'] .video-collection__sound-off {
+  display: none;
+}
+
+.video-collection__sound[aria-pressed='true'] .video-collection__sound-on {
+  display: block;
+}
+
+/*
+  The card itself opens quick view, so the drawer's own magnifier summary is only
+  a programmatic handle. It is shrunk and made transparent rather than removed:
+  display:none would drop it out of trapFocus, which selects `summary`, and it
+  would still collide with the sound toggle in the same corner otherwise.
+  Kept at the card's top-left so focusing it never scrolls anywhere unexpected.
+*/
+.video-collection__wrapper .quick-view__summary {
+  top: 0;
+  right: auto;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: none;
+  transition: none;
+}
+
+.video-collection__wrapper .quick-view__summary::after {
+  content: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-collection__media img {
+    transition: none;
+  }
+}

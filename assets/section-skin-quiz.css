@@ -1,0 +1,956 @@
+/*
+  Skin quiz.
+
+  Sizes come from the theme's heading scale (--font-h*-size) and durations from
+  --duration-*, so the section follows a merchant's typography and motion settings
+  instead of pinning its own numbers.
+*/
+.skin-quiz {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: rgb(var(--quiz-background));
+  color: rgb(var(--quiz-text));
+  padding-inline: 2rem;
+  /*
+    The section setting drives the padding, but a tinted box still needs a floor:
+    at 0 the questions would otherwise sit flush against the coloured edge.
+    Mirrors section--padding's own 0.75 mobile factor.
+  */
+  padding-block:
+    max(2.8rem, calc(var(--section-padding-top) * 0.75))
+    max(2.8rem, calc(var(--section-padding-bottom) * 0.75));
+}
+
+@media screen and (min-width: 750px) {
+  .skin-quiz {
+    padding-inline: 4rem;
+    padding-block:
+      max(4rem, var(--section-padding-top))
+      max(4rem, var(--section-padding-bottom));
+  }
+}
+
+.skin-quiz__app,
+.skin-quiz__setup-note {
+  position: relative;
+  z-index: 1;
+}
+
+/* <skin-quiz> is a custom element and would default to display:inline, where
+   max-width is ignored outright. */
+.skin-quiz__app {
+  display: block;
+}
+
+.skin-quiz__setup-note {
+  margin: 0;
+  opacity: 0.7;
+}
+
+/* --------------------------------------------------------------- Progress -- */
+.skin-quiz__progress {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 3.2rem;
+}
+
+/* display:flex above outranks the hidden attribute, which would leave the step
+   indicator showing on the intro panel. */
+.skin-quiz__progress[hidden] {
+  display: none;
+}
+
+.skin-quiz__progress-label {
+  margin: 0;
+  flex: 0 0 auto;
+  font-family: var(--font-heading-family);
+  font-size: calc(var(--font-heading-scale) * var(--font-h5-size));
+  color: rgba(var(--quiz-text), 0.55);
+}
+
+.skin-quiz__progress-track {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.6rem;
+  max-width: 32rem;
+}
+
+.skin-quiz__progress-segment {
+  position: relative;
+  flex: 1 1 0;
+  height: 3px;
+  background-color: rgba(var(--quiz-text), 0.14);
+  overflow: hidden;
+}
+
+.skin-quiz__progress-segment::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgb(var(--color-highlight));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-long) cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.skin-quiz__progress-segment.is-filled::after {
+  transform: scaleX(1);
+}
+
+/* ------------------------------------------------------------------ Intro -- */
+.skin-quiz__intro {
+  text-align: center;
+  max-width: 66rem;
+  margin: 0 auto;
+  padding: 2.4rem 0;
+}
+
+.skin-quiz__eyebrow {
+  margin: 0 0 1.6rem;
+  color: rgba(var(--quiz-text), 0.55);
+}
+
+.skin-quiz__heading {
+  margin: 0;
+  color: rgb(var(--quiz-text));
+  text-wrap: balance;
+}
+
+.skin-quiz__intro-text {
+  margin: 1.8rem auto 0;
+  max-width: 52ch;
+  color: rgba(var(--quiz-text), 0.72);
+}
+
+.skin-quiz__intro-actions {
+  margin-top: 3.2rem;
+}
+
+.skin-quiz__start,
+.skin-quiz__add {
+  background-color: rgb(var(--quiz-button-background));
+  color: rgb(var(--quiz-button-label));
+}
+
+.skin-quiz__start-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+/* The arrow lies level beside the button, tip at the middle of its start
+   edge, and nudges toward it — a knock on the door. It stays out of layout
+   so the button keeps its centred seat; the ink is the cue colour, which
+   falls back to the section's highlight. */
+.skin-quiz__start-arrow {
+  position: absolute;
+  inset-inline-end: calc(100% + 0.8rem);
+  top: 50%;
+  width: 3.2rem;
+  height: auto;
+  color: rgb(var(--quiz-attention));
+  pointer-events: none;
+  transform: translate(0, -50%);
+  animation: skin-quiz-arrow-nudge 1.2s ease-in-out infinite;
+}
+
+/* The flip rides the standalone scale property so the keyframes keep their
+   own channels to themselves. */
+html[dir=rtl] .skin-quiz__start-arrow {
+  scale: -1 1;
+}
+
+.skin-quiz__start-arrow path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Every frame restates the -50% lift: the keyframes own the whole transform,
+   and a frame without it would let the arrow jump off the button's midline. */
+@keyframes skin-quiz-arrow-nudge {
+  0%, 100% { transform: translate(0, -50%); }
+  50% { transform: translate(-0.7rem, -50%); }
+}
+
+/* The glow shares the arrow's ink, and rides box-shadow so the button's
+   own geometry never moves — a halo that swells and thins out, not a
+   button that throbs. */
+.skin-quiz__start--pulse {
+  animation: skin-quiz-start-pulse 2.2s cubic-bezier(0.33, 0, 0.67, 1) infinite;
+}
+
+@keyframes skin-quiz-start-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--quiz-attention), 0.5); }
+  70%, 100% { box-shadow: 0 0 0 1.4rem rgba(var(--quiz-attention), 0); }
+}
+
+/* -------------------------------------------------------------- Questions -- */
+/*
+  The question is the headline of its own screen, so it takes the h2 step rather
+  than the h3 its tag would imply — the tag stays h3 for document outline.
+*/
+.skin-quiz__question {
+  margin: 0 0 1rem;
+  font-size: calc(var(--font-heading-scale) * var(--font-h2-size));
+  color: rgb(var(--quiz-text));
+  text-wrap: balance;
+  max-width: 24ch;
+}
+
+.skin-quiz__question:focus,
+.skin-quiz__result-heading:focus {
+  outline: none;
+}
+
+.skin-quiz__help {
+  margin: 0 0 2.4rem;
+  max-width: 52ch;
+  color: rgba(var(--quiz-text), 0.65);
+}
+
+/*
+  Question and result panels hold a centred column of their own. Without this the
+  content hugs the left edge of a full-bleed band and leaves half the section
+  empty, regardless of the narrow setting.
+*/
+.skin-quiz__step,
+.skin-quiz__result {
+  max-width: 68rem;
+  margin: 0 auto;
+}
+
+.skin-quiz__progress {
+  max-width: 68rem;
+  margin-inline: auto;
+}
+
+.skin-quiz__options {
+  display: grid;
+  gap: 1rem;
+}
+
+.skin-quiz__option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.6rem;
+  width: 100%;
+  padding: 1.6rem 2rem;
+  border: 1px solid rgba(var(--quiz-text), 0.18);
+  border-radius: var(--button-radius);
+  background: transparent;
+  /* Buttons do not inherit type: without this the label falls back to Arial. */
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--duration-default) ease,
+    background-color var(--duration-default) ease,
+    transform var(--duration-default) ease;
+}
+
+.skin-quiz__option-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border: 1px solid rgba(var(--quiz-text), 0.22);
+  border-radius: var(--button-radius);
+  font-family: var(--font-heading-family);
+  font-size: calc(var(--font-heading-scale) * var(--font-h5-size));
+  color: rgba(var(--quiz-text), 0.55);
+  transition: border-color var(--duration-default) ease,
+    background-color var(--duration-default) ease, color var(--duration-default) ease;
+}
+
+.skin-quiz__option-label {
+  display: block;
+  font-size: calc(var(--font-heading-scale) * var(--font-h4-size));
+  line-height: 1.3;
+}
+
+.skin-quiz__option-hint {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 1.4rem;
+  line-height: 1.5;
+  color: rgba(var(--quiz-text), 0.6);
+}
+
+.skin-quiz__option-arrow {
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transform: translateX(-0.6rem);
+  transition: opacity var(--duration-default) ease, transform var(--duration-default) ease;
+}
+
+.skin-quiz__option-arrow svg {
+  width: 1.6rem;
+  height: 1.2rem;
+  fill: rgb(var(--color-highlight));
+}
+
+@media (hover: hover) {
+  .skin-quiz__option:hover {
+    border-color: rgba(var(--quiz-text), 0.4);
+    background-color: rgba(var(--quiz-text), 0.05);
+  }
+
+  .skin-quiz__option:hover .skin-quiz__option-key {
+    border-color: rgb(var(--color-highlight));
+    background-color: rgb(var(--color-highlight));
+    color: rgb(var(--quiz-background));
+  }
+
+  .skin-quiz__option:hover .skin-quiz__option-arrow {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.skin-quiz__option:active {
+  transform: scale(0.995);
+}
+
+.skin-quiz__controls {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 2.4rem;
+}
+
+.skin-quiz__back,
+.skin-quiz__restart {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  color: rgba(var(--quiz-text), 0.7);
+  font-size: 1.4rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--duration-default) ease;
+}
+
+@media (hover: hover) {
+  .skin-quiz__back:hover,
+  .skin-quiz__restart:hover {
+    color: rgb(var(--color-highlight));
+  }
+}
+
+.skin-quiz__reassurance {
+  font-size: 1.3rem;
+  color: rgba(var(--quiz-text), 0.45);
+}
+
+/* ----------------------------------------------------------------- Result -- */
+.skin-quiz__result-heading {
+  margin: 0 0 1.4rem;
+  color: rgb(var(--quiz-text));
+  text-wrap: balance;
+}
+
+.skin-quiz__result-text {
+  margin-bottom: 3.2rem;
+  max-width: 56ch;
+  color: rgba(var(--quiz-text), 0.72);
+}
+
+.skin-quiz__routine {
+  display: grid;
+  gap: 1px;
+  margin: 0 0 3.2rem;
+  padding: 0;
+  list-style: none;
+  background-color: rgba(var(--quiz-text), 0.14);
+  border: 1px solid rgba(var(--quiz-text), 0.14);
+}
+
+.skin-quiz__step-item {
+  display: grid;
+  grid-template-columns: 7.2rem 1fr auto;
+  gap: 1.8rem;
+  align-items: center;
+  padding: 1.6rem 2rem;
+  background-color: rgb(var(--quiz-background));
+}
+
+/* The routine is the moment the visitor decides, so the products are shown
+   rather than only named. */
+.skin-quiz__step-media {
+  position: relative;
+  display: block;
+  width: 7.2rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--card-radius);
+  background-color: rgb(var(--color-placeholder));
+}
+
+.skin-quiz__step-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.skin-quiz__step-index {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-family: var(--font-heading-family);
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  color: rgb(var(--color-highlight));
+}
+
+.skin-quiz__step-name {
+  display: block;
+  font-size: calc(var(--font-heading-scale) * var(--font-h4-size));
+  color: inherit;
+}
+
+.skin-quiz__step-note {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 1.3rem;
+  color: rgba(var(--quiz-text), 0.6);
+}
+
+.skin-quiz__step-price {
+  white-space: nowrap;
+  font-family: var(--font-price-family);
+  font-size: calc(var(--font-heading-scale) * var(--font-h4-size));
+}
+
+.skin-quiz__result-actions {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.skin-quiz__error {
+  margin-top: 1.6rem;
+  font-size: 1.4rem;
+  color: rgb(var(--color-critical));
+}
+
+/* ----------------------------------------------------------------- Motion -- */
+/*
+  Panels cross-fade and rise; the stage animates its own height so swapping a
+  short question for a tall result never snaps the page. Children stagger off a
+  --i index set in Liquid. Transform and opacity only.
+*/
+.skin-quiz__stage {
+  position: relative;
+  transition: height var(--duration-long) cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.skin-quiz__stage.is-measuring {
+  overflow: hidden;
+}
+
+.skin-quiz__panel[hidden] {
+  display: none;
+}
+
+.skin-quiz__panel > * {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.skin-quiz__panel.is-active > * {
+  animation: skin-quiz-rise var(--duration-long) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+@keyframes skin-quiz-rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* -------------------------------------------------------------- Backdrops -- */
+/*
+  Colours come from the section palette so each effect inherits whatever the
+  merchant picked. --quiz-bg-strength scales every layer from one setting.
+*/
+.skin-quiz__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.skin-quiz__backdrop-layer {
+  position: absolute;
+  display: block;
+  will-change: transform;
+}
+
+.skin-quiz--intensity-subtle {
+  --quiz-bg-strength: 0.6;
+}
+
+.skin-quiz--intensity-medium {
+  --quiz-bg-strength: 1;
+}
+
+.skin-quiz--intensity-strong {
+  --quiz-bg-strength: 1.6;
+}
+
+/* Aurora — soft blobs drifting past each other. */
+.skin-quiz--bg-aurora .skin-quiz__backdrop-layer {
+  width: 52rem;
+  height: 52rem;
+  border-radius: 50%;
+  filter: blur(72px);
+}
+
+.skin-quiz--bg-aurora .skin-quiz__backdrop-layer--1 {
+  top: -16rem;
+  left: -10rem;
+  background: rgb(var(--quiz-effect));
+  opacity: calc(0.3 * var(--quiz-bg-strength));
+  animation: skin-quiz-drift-a 26s ease-in-out infinite;
+}
+
+.skin-quiz--bg-aurora .skin-quiz__backdrop-layer--2 {
+  bottom: -20rem;
+  right: -8rem;
+  background: rgb(var(--quiz-effect));
+  opacity: calc(0.2 * var(--quiz-bg-strength));
+  animation: skin-quiz-drift-b 32s ease-in-out infinite;
+}
+
+.skin-quiz--bg-aurora .skin-quiz__backdrop-layer--3 {
+  top: 12%;
+  right: 24%;
+  width: 36rem;
+  height: 36rem;
+  background: rgba(var(--quiz-text), 0.5);
+  opacity: calc(0.16 * var(--quiz-bg-strength));
+  animation: skin-quiz-drift-a 38s ease-in-out infinite reverse;
+}
+
+@keyframes skin-quiz-drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(9rem, 6rem, 0) scale(1.16); }
+}
+
+@keyframes skin-quiz-drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.1); }
+  50% { transform: translate3d(-8rem, -5rem, 0) scale(1); }
+}
+
+/* Mesh — a wide gradient sheet easing across the section. */
+.skin-quiz--bg-mesh .skin-quiz__backdrop-layer--1 {
+  inset: -30%;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(var(--quiz-effect), 0.55), transparent 45%),
+    radial-gradient(circle at 78% 70%, rgba(var(--quiz-effect), 0.3), transparent 46%),
+    radial-gradient(circle at 55% 20%, rgba(var(--quiz-text), 0.2), transparent 40%);
+  filter: blur(56px);
+  opacity: calc(0.55 * var(--quiz-bg-strength));
+  animation: skin-quiz-mesh 34s ease-in-out infinite;
+}
+
+.skin-quiz--bg-mesh .skin-quiz__backdrop-layer--2,
+.skin-quiz--bg-mesh .skin-quiz__backdrop-layer--3,
+.skin-quiz--bg-sheen .skin-quiz__backdrop-layer--2,
+.skin-quiz--bg-sheen .skin-quiz__backdrop-layer--3 {
+  display: none;
+}
+
+@keyframes skin-quiz-mesh {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(-4%, 3%, 0) scale(1.1); }
+  66% { transform: translate3d(3%, -3%, 0) scale(1.05); }
+}
+
+/* Rings — concentric outlines breathing outward. */
+.skin-quiz--bg-rings .skin-quiz__backdrop-layer {
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 1px solid rgb(var(--quiz-effect));
+  transform: translate(-50%, -50%);
+}
+
+.skin-quiz--bg-rings .skin-quiz__backdrop-layer--1 {
+  width: 36rem;
+  height: 36rem;
+  animation: skin-quiz-breathe 14s ease-in-out infinite;
+}
+
+.skin-quiz--bg-rings .skin-quiz__backdrop-layer--2 {
+  width: 58rem;
+  height: 58rem;
+  animation: skin-quiz-breathe 14s ease-in-out infinite 1.6s;
+}
+
+.skin-quiz--bg-rings .skin-quiz__backdrop-layer--3 {
+  width: 82rem;
+  height: 82rem;
+  animation: skin-quiz-breathe 14s ease-in-out infinite 3.2s;
+}
+
+@keyframes skin-quiz-breathe {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: calc(0.18 * var(--quiz-bg-strength));
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: calc(0.55 * var(--quiz-bg-strength));
+  }
+}
+
+/* Sheen — a single slow diagonal pass of light. */
+.skin-quiz--bg-sheen .skin-quiz__backdrop-layer--1 {
+  top: -60%;
+  bottom: -60%;
+  left: -40%;
+  width: 45%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(var(--quiz-effect), 0.6),
+    rgba(var(--quiz-text), 0.12),
+    transparent
+  );
+  filter: blur(44px);
+  opacity: calc(0.5 * var(--quiz-bg-strength));
+  animation: skin-quiz-sheen 18s ease-in-out infinite;
+}
+
+@keyframes skin-quiz-sheen {
+  0% { transform: translate3d(0, 0, 0) rotate(8deg); }
+  100% { transform: translate3d(280%, 0, 0) rotate(8deg); }
+}
+
+/* Liquid — blobs that morph their own outline as they drift. border-radius and
+   transform animate on separate tracks so the morph and the drift do not fight
+   each other. */
+.skin-quiz--bg-liquid .skin-quiz__backdrop-layer {
+  width: 50rem;
+  height: 50rem;
+  background: rgb(var(--quiz-effect));
+  filter: blur(50px);
+}
+
+.skin-quiz--bg-liquid .skin-quiz__backdrop-layer--1 {
+  top: -14rem;
+  left: -8rem;
+  opacity: calc(0.32 * var(--quiz-bg-strength));
+  animation: skin-quiz-morph 19s ease-in-out infinite, skin-quiz-drift-a 30s ease-in-out infinite;
+}
+
+.skin-quiz--bg-liquid .skin-quiz__backdrop-layer--2 {
+  bottom: -18rem;
+  right: -6rem;
+  opacity: calc(0.24 * var(--quiz-bg-strength));
+  animation: skin-quiz-morph 23s ease-in-out infinite reverse, skin-quiz-drift-b 34s ease-in-out infinite;
+}
+
+.skin-quiz--bg-liquid .skin-quiz__backdrop-layer--3 {
+  top: 22%;
+  left: 42%;
+  width: 34rem;
+  height: 34rem;
+  background: rgba(var(--quiz-text), 0.6);
+  opacity: calc(0.14 * var(--quiz-bg-strength));
+  animation: skin-quiz-morph 27s ease-in-out infinite, skin-quiz-drift-a 40s ease-in-out infinite reverse;
+}
+
+@keyframes skin-quiz-morph {
+  0%, 100% { border-radius: 42% 58% 63% 37% / 45% 42% 58% 55%; }
+  33% { border-radius: 62% 38% 41% 59% / 58% 63% 37% 42%; }
+  66% { border-radius: 38% 62% 55% 45% / 40% 48% 52% 60%; }
+}
+
+/* Silk — broad curved folds rather than straight bands. Each layer is a wide
+   rounded shape carrying a bright edge and a shadowed body, so the gradient
+   reads as light catching a fold. Curvature plus the moving highlight is what
+   separates fabric from stripes. */
+.skin-quiz--bg-silk .skin-quiz__backdrop-layer {
+  left: -25%;
+  width: 150%;
+  height: 72%;
+  filter: blur(42px);
+  /* No mix-blend-mode: screen reads well on a dark band but flattens a light one
+     to nothing, and a theme cannot know which the merchant picked. Plain alpha
+     behaves the same on both. */
+}
+
+.skin-quiz--bg-silk .skin-quiz__backdrop-layer--1 {
+  top: -18%;
+  border-radius: 50% 50% 42% 58% / 62% 55% 45% 38%;
+  background: linear-gradient(
+    104deg,
+    transparent 8%,
+    rgba(var(--quiz-effect), 0.75) 34%,
+    rgba(var(--quiz-text), 0.28) 52%,
+    transparent 82%
+  );
+  opacity: calc(0.5 * var(--quiz-bg-strength));
+  animation: skin-quiz-fold-a 32s ease-in-out infinite;
+}
+
+.skin-quiz--bg-silk .skin-quiz__backdrop-layer--2 {
+  bottom: -22%;
+  border-radius: 45% 55% 55% 45% / 40% 48% 52% 60%;
+  background: linear-gradient(
+    82deg,
+    transparent 12%,
+    rgba(var(--quiz-text), 0.4) 40%,
+    rgba(var(--quiz-effect), 0.5) 62%,
+    transparent 88%
+  );
+  opacity: calc(0.4 * var(--quiz-bg-strength));
+  animation: skin-quiz-fold-b 41s ease-in-out infinite;
+}
+
+.skin-quiz--bg-silk .skin-quiz__backdrop-layer--3 {
+  top: 22%;
+  height: 56%;
+  border-radius: 58% 42% 50% 50% / 45% 60% 40% 55%;
+  background: linear-gradient(
+    122deg,
+    transparent 20%,
+    rgba(var(--quiz-effect), 0.42) 50%,
+    transparent 78%
+  );
+  opacity: calc(0.32 * var(--quiz-bg-strength));
+  animation: skin-quiz-fold-c 49s ease-in-out infinite;
+}
+
+/* The border-radius shifts on its own track so the fold reshapes while it
+   drifts, instead of a rigid shape sliding across. */
+@keyframes skin-quiz-fold-a {
+  0%, 100% {
+    transform: translate3d(-3%, 0, 0) rotate(-7deg) scaleY(1);
+    border-radius: 50% 50% 42% 58% / 62% 55% 45% 38%;
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) rotate(-2deg) scaleY(1.14);
+    border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%;
+  }
+}
+
+@keyframes skin-quiz-fold-b {
+  0%, 100% {
+    transform: translate3d(3%, 0, 0) rotate(5deg) scaleY(1.08);
+    border-radius: 45% 55% 55% 45% / 40% 48% 52% 60%;
+  }
+  50% {
+    transform: translate3d(-4%, -3%, 0) rotate(9deg) scaleY(1);
+    border-radius: 58% 42% 45% 55% / 55% 40% 60% 45%;
+  }
+}
+
+@keyframes skin-quiz-fold-c {
+  0%, 100% {
+    transform: translate3d(0, 2%, 0) rotate(3deg);
+    border-radius: 58% 42% 50% 50% / 45% 60% 40% 55%;
+  }
+  50% {
+    transform: translate3d(-5%, -2%, 0) rotate(-4deg);
+    border-radius: 44% 56% 60% 40% / 58% 44% 56% 42%;
+  }
+}
+
+/* Grid — a slow drifting lattice, masked to fade at the edges so it never boxes
+   the content in. */
+.skin-quiz--bg-grid .skin-quiz__backdrop-layer--1 {
+  inset: -15%;
+  background-image:
+    linear-gradient(rgb(var(--quiz-text)) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--quiz-text)) 1px, transparent 1px);
+  background-size: 6.4rem 6.4rem;
+  opacity: calc(0.14 * var(--quiz-bg-strength));
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 15%, transparent 68%);
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 15%, transparent 68%);
+  animation: skin-quiz-grid 26s linear infinite;
+}
+
+.skin-quiz--bg-grid .skin-quiz__backdrop-layer--2 {
+  top: 50%;
+  left: 50%;
+  width: 46rem;
+  height: 46rem;
+  margin: -23rem 0 0 -23rem;
+  border-radius: 50%;
+  background: rgb(var(--quiz-effect));
+  filter: blur(80px);
+  opacity: calc(0.22 * var(--quiz-bg-strength));
+  animation: skin-quiz-drift-a 34s ease-in-out infinite;
+}
+
+.skin-quiz--bg-grid .skin-quiz__backdrop-layer--3 {
+  display: none;
+}
+
+@keyframes skin-quiz-grid {
+  to { transform: translate3d(6.4rem, 6.4rem, 0); }
+}
+
+/* Waves — broad ellipses rotating just past the lower edge, reading as a slow
+   swell. */
+.skin-quiz--bg-waves .skin-quiz__backdrop-layer {
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  border-radius: 42%;
+  transform-origin: 50% 50%;
+}
+
+.skin-quiz--bg-waves .skin-quiz__backdrop-layer--1 {
+  bottom: -172%;
+  margin-left: -100%;
+  background: rgba(var(--quiz-effect), 0.85);
+  opacity: calc(0.3 * var(--quiz-bg-strength));
+  animation: skin-quiz-wave 26s linear infinite;
+}
+
+.skin-quiz--bg-waves .skin-quiz__backdrop-layer--2 {
+  bottom: -178%;
+  margin-left: -100%;
+  border-radius: 45%;
+  background: rgba(var(--quiz-text), 0.7);
+  opacity: calc(0.12 * var(--quiz-bg-strength));
+  animation: skin-quiz-wave 34s linear infinite reverse;
+}
+
+.skin-quiz--bg-waves .skin-quiz__backdrop-layer--3 {
+  display: none;
+}
+
+@keyframes skin-quiz-wave {
+  to { transform: rotate(360deg); }
+}
+
+/* Image — the merchant's own photograph, drifting slowly. The only option that
+   can match a real fabric or texture shot; everything else here is an
+   abstraction. Intensity drives the scrim rather than a layer opacity, so
+   "stronger" means the photo reads more, not less. */
+.skin-quiz__backdrop-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+  animation: skin-quiz-kenburns 20s ease-in-out infinite alternate;
+}
+
+.skin-quiz__backdrop-scrim {
+  position: absolute;
+  inset: 0;
+  background-color: rgb(var(--quiz-background));
+  /*
+    Floor matters more than range here: a merchant can upload anything, and at a
+    thin scrim white text over a bright sky drops to roughly 4:1. This keeps the
+    lightest setting at 0.5, which held ~5.5:1 against a bright test photo.
+  */
+  opacity: calc(0.9 - 0.25 * var(--quiz-bg-strength));
+}
+
+/*
+  Starting already scaled and offset the other way roughly doubles the travel —
+  too slow a drift reads as a still image. scale(s) translate(t) applies the
+  translate first, so the real displacement is t*s and must stay under the
+  (s-1)/2 overflow margin or the image edge appears.
+*/
+@keyframes skin-quiz-kenburns {
+  from { transform: scale(1.1) translate3d(3%, 2%, 0); }
+  to { transform: scale(1.24) translate3d(-4.5%, -3%, 0); }
+}
+
+/* ----------------------------------------------------------------- Mobile -- */
+@media screen and (max-width: 749px) {
+  .skin-quiz__progress {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    margin-bottom: 3.2rem;
+  }
+
+  .skin-quiz__progress-track {
+    max-width: none;
+  }
+
+  .skin-quiz__question {
+    max-width: none;
+  }
+
+  .skin-quiz__option {
+    padding: 1.6rem 1.8rem;
+    gap: 1.4rem;
+  }
+
+  /* The arrow is a hover affordance and has no meaning on touch. */
+  .skin-quiz__option-arrow {
+    display: none;
+  }
+
+  .skin-quiz__step-item {
+    grid-template-columns: 5.6rem 1fr;
+    row-gap: 0.4rem;
+  }
+
+  /* Price drops under the name rather than squeezing it on a narrow screen. */
+  .skin-quiz__step-price {
+    grid-column: 2;
+  }
+
+  .skin-quiz__step-media {
+    width: 5.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-quiz__stage,
+  .skin-quiz__option,
+  .skin-quiz__option-key,
+  .skin-quiz__option-arrow,
+  .skin-quiz__progress-segment::after {
+    transition: none;
+  }
+
+  .skin-quiz__panel > *,
+  .skin-quiz__panel.is-active > * {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  /* The still arrow keeps pointing; the pulse is pure motion, so it goes. */
+  .skin-quiz__start-arrow,
+  .skin-quiz__start--pulse {
+    animation: none;
+  }
+
+  /* The generated effects are purely decorative and go entirely. A merchant's
+     own photo stays — a static image causes no motion discomfort — but it stops
+     drifting. */
+  .skin-quiz__backdrop-layer {
+    display: none;
+  }
+
+  .skin-quiz__backdrop-image {
+    animation: none;
+  }
+}

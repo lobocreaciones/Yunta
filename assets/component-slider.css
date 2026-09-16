@@ -1,0 +1,402 @@
+:root {
+  --slider-button-width: 4.4rem;
+  --slider-button-height: 4.4rem;
+}
+.slider-mobile-gutter {
+  position: relative;
+  display: block;
+}
+
+/*
+  Edge-to-edge rail. The list spans the viewport and carries the page gutter as
+  its own padding, so the row starts on the page column and then runs off the
+  screen instead of stopping at the margin. The list stays the scroll container,
+  which is both what the slider script drives and what makes the padding reach:
+  a scroll container clips at its padding box, so the gutter has to sit on the
+  scrolling element rather than on a wrapper around it.
+  Item widths are unchanged — a percentage of the list's content box, which this
+  padding leaves exactly equal to the page column.
+*/
+.slider--bleed {
+  --slider-gutter: calc((100% - min(100%, var(--page-width))) / 2 + 1.5rem);
+  padding-inline: var(--slider-gutter);
+  scroll-padding-inline-start: var(--slider-gutter);
+}
+
+@media screen and (min-width: 750px) {
+  .slider--bleed {
+    --slider-gutter: calc((100% - min(100%, var(--page-width))) / 2 + 5rem);
+  }
+}
+
+
+.slider-mobile-gutter + .view-all {
+  margin-top: 3rem;
+}
+
+@media screen and (min-width: 750px) {
+  .slider-mobile-gutter + .view-all {
+    margin-top: 5rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .slider-mobile-gutter + .view-all .button {
+    width: 100%;
+  }
+}
+
+.slider--no-buttons .slider-buttons {
+  display: none !important;
+}
+
+.slider__slide {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+@media screen and (max-width: 749px) {
+  .slider.slider--mobile {
+    position: relative;
+    flex-wrap: inherit;
+    overflow-y: hidden;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .slider.slider--mobile .slider__slide {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .slider.slider--mobile::-webkit-scrollbar {
+    height: 0.9rem;
+    width: 0.9rem;
+    display: initial;
+  }
+
+  .slider-mobile-gutter > .slider.flex-grid--2-col > .flex-grid__item {
+    width: 42%;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .slider-mobile-gutter > .slider.flex-grid--1-col-mobile > .flex-grid__item {
+    width: 62%;
+  }
+}
+
+@media screen and (min-width: 750px) {
+  .slider.slider--tablet-up {
+    position: relative;
+    flex-wrap: inherit;
+    overflow-y: hidden;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+  }
+
+  .slider.slider--tablet-up .slider__slide {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  /*
+    A container declaring mandatory snap needs snap points. .slider__slide
+    carries them, but sections attach that class from their mobile swipe setting
+    while this rail comes from the desktop one — with the two set differently the
+    row would declare mandatory snap and have nothing to snap to, and rest
+    mid-card instead of on the gutter.
+  */
+  .slider.slider--tablet-up > .flex-grid__item {
+    scroll-snap-align: start;
+  }
+
+  .slider.slider--tablet-up::-webkit-scrollbar {
+    display: initial;
+  }
+}
+
+@media screen and (max-width: 989px) {
+  .slider.slider--tablet {
+    position: relative;
+    flex-wrap: inherit;
+    overflow-y: hidden;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+  }
+
+  .slider.slider--tablet .slider__slide {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .slider.slider--tablet::-webkit-scrollbar {
+    height: 0.9rem;
+    width: 0.9rem;
+    display: initial;
+  }
+}
+
+@media (prefers-reduced-motion) {
+  .slider {
+    scroll-behavior: auto;
+  }
+}
+
+/*
+  A styled, persistent scrollbar, by choice. In Chromium any scrollbar
+  styling — this or the standard properties — paints the bar at rest and
+  overrides the platform's overlay fade, so a styled bar and the native fade
+  cannot be combined. Rows that show controls instead are the exception below.
+*/
+.slider {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.slider::-webkit-scrollbar {
+  height: 1rem;
+  width: 1rem;
+  display: none;
+}
+
+.no-js .slider {
+  -ms-overflow-style: auto;
+  scrollbar-width: auto;
+}
+
+.no-js .slider::-webkit-scrollbar {
+  display: initial;
+}
+
+.slider::-webkit-scrollbar {
+  appearance: none;
+  background-clip: padding-box;
+  border: 0.3rem solid transparent;
+  border-radius: 1.6rem;
+  background-color: rgba(var(--color-border), 0.3);
+}
+
+.slider::-webkit-scrollbar-thumb {
+  border: 0.3rem solid transparent;
+  background-clip: padding-box;
+  border-radius: 1.6rem;
+  background-color: rgb(var(--color-border));
+}
+
+.slider-mobile-gutter .slider-buttons {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.title-wrapper--mobile-link + .slider-mobile-gutter > .slider-buttons {
+  margin-bottom: 1rem;
+}
+
+.slider-mobile-gutter .slider-buttons[disabled] {
+  display: none;
+}
+
+@media screen and (min-width: 990px) {
+  .slider-mobile-gutter .slider-buttons {
+    margin-bottom: 2rem;
+  }
+}
+
+@media screen and (max-width: 989px) {
+  [data-heading-center] .title-wrapper:not(.title-wrapper--no-heading) + .slider-mobile-gutter {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  [data-heading-center] .title-wrapper:not(.title-wrapper--no-heading) + .slider-mobile-gutter .slider-buttons {
+    position: relative;
+    margin-top: -2rem;
+    justify-content: center;
+  }
+}
+
+.slider-mobile--overlay .slider-buttons {
+  color: rgb(var(--color-background));
+}
+
+.slider-counter {
+  display: none;
+  margin-inline-end: 3rem;
+}
+
+.slider-mobile--overlay .slider-counter {
+  margin-inline-end: 1.4rem;
+}
+
+/*
+  One affordance per row, decided by the heading. Controls and a scrollbar say
+  the same thing twice, and the controls are the better half of the pair:
+  reachable from the keyboard, they carry a disabled state, and they cost no
+  layout — a classic scrollbar reserves a band under the cards that overlay
+  platforms never show, so the same row is a different height on Windows than
+  on a Mac. But the controls live in the heading row, so a row with no heading
+  has nowhere to put them and navigates by the platform's scrollbar instead —
+  the class marks the rows that actually render controls, which sections only
+  do under a visible heading. Below 750px the controls are hidden everywhere
+  and the scrollbar keeps the job.
+*/
+@media screen and (min-width: 750px) {
+  .slider.slider--has-controls {
+    scrollbar-width: none;
+  }
+
+  .slider.slider--has-controls::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.slider-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.slider--tablet-up + .slider-buttons {
+  display: flex;
+  justify-content: center;
+}
+
+@media screen and (min-width: 990px) {
+  .slider-buttons {
+    display: none;
+  }
+}
+
+/*
+  Controls promoted into the heading row have to survive that wholesale hide:
+  a desktop row that scrolls is exactly where a pointer with no swipe gesture
+  needs them. The .*-hide utilities still win, so a row short enough to fit
+  keeps no buttons at all.
+*/
+.title-wrapper .slider-buttons {
+  display: flex;
+}
+
+/*
+  In the heading row the controls are pinned, not flowed: as a flex sibling they
+  push a centred heading off-centre — the wrapper centres the pair, not the
+  heading. Pinned to the end they leave every alignment where it was, and swap
+  ends under a right-aligned heading rather than sit under it. They only render
+  under a visible heading, so the wrapper always has a heading to size the pin
+  against — a headingless row navigates by scrollbar instead.
+*/
+.title-wrapper:has(> .slider-buttons) {
+  position: relative;
+}
+
+.title-wrapper > .slider-buttons {
+  position: absolute;
+  inset-inline-end: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.title-wrapper.right > .slider-buttons {
+  inset-inline-end: auto;
+  inset-inline-start: 0;
+}
+
+/*
+  A bleeding section hands page-width to the heading row itself, so the row's
+  padding is the page gutter — and absolute insets resolve against the padding
+  box, which would pin the controls to the screen edge instead of the column.
+  These insets restate the gutter; the controls only show from 750px up, so only
+  that padding value is needed.
+*/
+@media screen and (min-width: 750px) {
+  .title-wrapper.page-width > .slider-buttons {
+    inset-inline-end: 5rem;
+  }
+
+  .title-wrapper.page-width.right > .slider-buttons {
+    inset-inline-end: auto;
+    inset-inline-start: 5rem;
+  }
+}
+
+@media screen and (min-width: 750px) {
+  .slider--mobile + .slider-buttons {
+    display: none;
+  }
+}
+
+.slider-button {
+  border: none;
+  color: rgba(var(--color-foreground), 0.75);
+  background-color: rgb(var(--color-background));
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  text-align: start;
+  transition: color var(--duration-default) ease;
+}
+
+.slider-button,
+.slider-button svg {
+  width: var(--slider-button-width);
+  height: var(--slider-button-width);
+}
+
+.slider-mobile--overlay .slider-button {
+  color: rgba(var(--color-foreground), 0.5);
+}
+
+@media screen and (hover: hover) {
+  .slider-button:not([disabled]):hover,
+  .slider-mobile--overlay .slider-button:not([disabled]):hover {
+    color: rgba(var(--color-foreground), 1);
+  }
+}
+
+.slider-button .icon {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.slider-button[disabled] .icon {
+  color: rgba(var(--color-foreground), 0.3);
+}
+
+.slider-mobile--overlay .slider-button[disabled] .icon {
+  color: currentColor;
+  opacity: 0.3;
+}
+
+.slider-button--next {
+  text-align: end;
+}
+
+.slider-button--next::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  margin-top: -0.8rem;
+  width: 0.1rem;
+  height: 1.6rem;
+  background-color: rgba(var(--color-foreground), 0.1);
+}
+
+.slider-button--prev .icon {
+  transform: scaleX(-1);
+}
+
+.slider-button:focus-visible {
+  z-index: 1;
+}

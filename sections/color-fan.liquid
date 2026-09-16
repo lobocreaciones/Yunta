@@ -1,0 +1,625 @@
+{%- liquid
+  assign product = section.settings.product
+  assign fan_image = section.settings.image
+  if fan_image == blank and product != blank
+    assign fan_image = product.featured_image
+  endif
+  assign count = section.blocks.size
+  assign fan_style = section.settings.fan_style
+
+  # Hand-fan geometry: cards pivot below their own box, tops sweeping apart
+  # so each shade shows almost whole. The span narrows as cards are added,
+  # capped per-card so small counts do not over-separate.
+  assign fan_centre = count | minus: 1 | divided_by: 2.0
+  assign fan_step = 0
+  if count > 1
+    assign count_minus_one = count | minus: 1
+    assign fan_step = 80.0 | divided_by: count_minus_one | at_most: 18.0
+  endif
+
+  # The cards must sit flush behind the picture, so the shared box takes one
+  # ratio — the picture's own on adapt, the chosen one otherwise (the picture
+  # then covers it) — fitted inside 76% of the square stage.
+  assign fan_ratio = 1.0
+  case section.settings.image_ratio
+    when 'square'
+      assign fan_ratio = 1.0
+    when 'portrait'
+      assign fan_ratio = 0.8
+    when 'landscape'
+      assign fan_ratio = 1.5
+    when 'wide'
+      assign fan_ratio = 1.7778
+    else
+      if fan_image != blank
+        assign fan_ratio = fan_image.aspect_ratio
+      endif
+  endcase
+  if fan_ratio >= 1
+    assign fan_box_w = 76
+    assign fan_box_h = 76.0 | divided_by: fan_ratio | round: 2
+  else
+    assign fan_box_h = 76
+    assign fan_box_w = 76.0 | times: fan_ratio | round: 2
+  endif
+
+  # Exact rendered widths for srcset selection: the desktop stage is a fixed
+  # pixel setting, so the picture's slot is computable to the pixel; below
+  # 750 the stage is fluid at 78vw and the box keeps its share of it.
+  assign fan_img_px = section.settings.image_width | times: fan_box_w | divided_by: 100.0 | round
+  assign fan_img_vw = 78.0 | times: fan_box_w | divided_by: 100.0 | round: 1
+  assign fan_img_sizes = '(min-width: 750px) ' | append: fan_img_px | append: 'px, ' | append: fan_img_vw | append: 'vw'
+-%}
+
+{%- style -%}
+  #shopify-section-{{ section.id }} {
+    --section-padding-top: {{ section.settings.padding_top }}px;
+    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
+    --fan-card-radius: {{ section.settings.shade_corner_radius }}px;
+    --fan-image-radius: {{ section.settings.image_corner_radius }}px;
+    --fan-box-width: {{ fan_box_w }}%;
+    --fan-box-height: {{ fan_box_h }}%;
+    --fan-stage-width: {{ section.settings.image_width }}px;
+    --fan-ring-color: {{ section.settings.hover_ring_color }};
+  }
+{%- endstyle -%}
+
+{{ 'section-color-fan.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'color-fan.js' | asset_url }}" defer="defer"></script>
+
+<div class="section--padding{% if section.settings.show_divider %} section--divider{% endif %}">
+  <div class="page-width">
+    {%- if section.settings.heading != blank or section.settings.subheading != blank -%}
+      <div class="color-fan__header {{ section.settings.heading_alignment }}">
+        {%- if section.settings.heading != blank -%}
+          <{{ section.settings.heading_tag }} class="title {{ section.settings.heading_size }}">
+            {%- render 'highlight-text',
+              hl_input: section.settings.heading,
+              hl_style: section.settings.highlight_style,
+              hl_enable: section.settings.enable_highlight,
+              hl_animateWrap: true -%}
+          </{{ section.settings.heading_tag }}>
+        {%- endif -%}
+        {%- if section.settings.subheading != blank -%}
+          <p class="color-fan__subheading {{ section.settings.subheading_size }}">
+            {%- render 'highlight-text',
+              hl_input: section.settings.subheading,
+              hl_style: section.settings.highlight_style,
+              hl_enable: section.settings.enable_highlight,
+              hl_animateWrap: true -%}
+          </p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- if count > 0 -%}
+      <color-fan class="color-fan color-fan--{{ fan_style }}{% unless section.settings.hover_ring == 'none' %} color-fan--ring color-fan--ring-{{ section.settings.hover_ring }}{% endunless %}" data-fan-trigger="{{ section.settings.fan_trigger }}">
+        {%- comment -%}
+          The hidden attribute is the FOUC guard for the theme editor: a
+          re-rendered section paints one unstyled frame before its stylesheet
+          re-applies, and the stage's absolute geometry all lives in CSS. The
+          stylesheet's display declaration overrides the attribute.
+        {%- endcomment -%}
+        {%- if product != blank -%}
+          <a href="{{ product.url }}" class="color-fan__stage" aria-label="{{ product.title | escape }}" hidden>
+        {%- else -%}
+          <div class="color-fan__stage" hidden>
+        {%- endif -%}
+          {%- for block in section.blocks -%}
+            {%- liquid
+              assign fan_scale_open = 1
+              if fan_style == 'spread'
+                # Hand fan: linear angles across the span, opening from the
+                # centre outward. Every card stays fully opaque — the point
+                # of this style is seeing each shade whole. An odd count puts
+                # one card at exactly 0°, flush behind the picture — that one
+                # scales up instead and rims the picture with its shade.
+                assign fan_angle = forloop.index0 | minus: fan_centre | times: fan_step | round: 1
+                assign fan_dist = forloop.index0 | minus: fan_centre | abs
+                assign fan_delay = fan_dist | times: 90 | round
+                assign fan_opacity = 1
+                if fan_angle == 0
+                  assign fan_scale_open = 1.06
+                endif
+              else
+                # Bloom: one rotation direction, one 10° notch per card,
+                # starting at 10° so every shade clears the picture — a card
+                # at 0° would hide behind it. A rotated rectangle emerges at
+                # both diagonals at once, so the fan reads two-sided by
+                # symmetry — no card needs a negative angle.
+                assign fan_notch = forloop.index0 | plus: 1
+                assign fan_angle = 10 | times: fan_notch
+                assign fan_delay = forloop.index0 | times: 60
+                assign fan_fade = 0.45 | divided_by: count | times: forloop.index0
+                assign fan_opacity = 0.92 | minus: fan_fade | round: 2
+                if block.settings.image != blank
+                  # A dimmed product shot reads as broken, not as depth.
+                  assign fan_opacity = 1
+                endif
+              endif
+            -%}
+            <span
+              class="color-fan__card"
+              aria-hidden="true"
+              style="--fan-color: {{ block.settings.color }}; --fan-angle: {{ fan_angle }}deg; --fan-delay: {{ fan_delay }}ms; --fan-opacity: {{ fan_opacity }}; --fan-scale-open: {{ fan_scale_open }};"
+              {% if block.settings.label != blank %}data-fan-label="{{ block.settings.label | escape }}"{% endif %}
+              {{ block.shopify_attributes }}
+            >
+              {%- if block.settings.image != blank -%}
+                {{ block.settings.image | image_url: width: 1440 | image_tag:
+                  loading: 'lazy',
+                  widths: '360, 540, 720, 900, 1080, 1440',
+                  sizes: fan_img_sizes,
+                  alt: '',
+                  is: 'lazy-image'
+                }}
+              {%- endif -%}
+            </span>
+          {%- endfor -%}
+          <div class="color-fan__media">
+            {%- if fan_image != blank -%}
+              {{ fan_image | image_url: width: 1440 | image_tag:
+                loading: 'lazy',
+                widths: '360, 540, 720, 900, 1080, 1440',
+                sizes: fan_img_sizes,
+                is: 'lazy-image'
+              }}
+            {%- else -%}
+              {{ 'product-1' | placeholder_svg_tag: 'placeholder' }}
+            {%- endif -%}
+          </div>
+        {%- if product != blank -%}
+          </a>
+        {%- else -%}
+          </div>
+        {%- endif -%}
+        {%- liquid
+          # The cards are decorative to assistive tech; the shade names still
+          # exist for it as plain text.
+          assign shade_names = ''
+          for block in section.blocks
+            if block.settings.label != blank
+              unless shade_names == blank
+                assign shade_names = shade_names | append: ', '
+              endunless
+              assign shade_names = shade_names | append: block.settings.label
+            endif
+          endfor
+        -%}
+        {%- if shade_names != blank -%}
+          <span class="visually-hidden">{{ shade_names | escape }}</span>
+        {%- endif -%}
+      </color-fan>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.color-fan.name",
+  "tag": "section",
+  "class": "section",
+  "disabled_on": {
+    "groups": ["header", "footer", "custom.overlay"]
+  },
+  "max_blocks": 12,
+  "settings": [
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "default": "Find your shade",
+      "label": "t:sections.all.heading.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "options": [
+        {
+          "value": "h2",
+          "label": "t:sections.all.heading_size.options__1.label"
+        },
+        {
+          "value": "h1",
+          "label": "t:sections.all.heading_size.options__2.label"
+        },
+        {
+          "value": "h0",
+          "label": "t:sections.all.heading_size.options__3.label"
+        }
+      ],
+      "default": "h1",
+      "label": "t:sections.all.heading_size.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:sections.all.heading_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:sections.all.heading_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:sections.all.heading_alignment.options__3.label"
+        }
+      ],
+      "default": "center",
+      "label": "t:sections.all.heading_alignment.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "t:sections.all.heading_tag.options__1.label"
+        },
+        {
+          "value": "h2",
+          "label": "t:sections.all.heading_tag.options__2.label"
+        },
+        {
+          "value": "h3",
+          "label": "t:sections.all.heading_tag.options__3.label"
+        },
+        {
+          "value": "h4",
+          "label": "t:sections.all.heading_tag.options__4.label"
+        },
+        {
+          "value": "h5",
+          "label": "t:sections.all.heading_tag.options__5.label"
+        },
+        {
+          "value": "h6",
+          "label": "t:sections.all.heading_tag.options__6.label"
+        },
+        {
+          "value": "div",
+          "label": "t:sections.all.heading_tag.options__7.label"
+        },
+        {
+          "value": "span",
+          "label": "t:sections.all.heading_tag.options__8.label"
+        },
+        {
+          "value": "p",
+          "label": "t:sections.all.heading_tag.options__9.label"
+        }
+      ],
+      "default": "h2",
+      "label": "t:sections.all.heading_tag.label",
+      "info": "t:sections.all.heading_tag.info"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subheading",
+      "default": "One formula · every tone",
+      "label": "t:sections.all.subheading.label"
+    },
+    {
+      "type": "select",
+      "id": "subheading_size",
+      "options": [
+        {
+          "value": "h5",
+          "label": "t:sections.all.subheading_size.options__1.label"
+        },
+        {
+          "value": "h4",
+          "label": "t:sections.all.subheading_size.options__2.label"
+        },
+        {
+          "value": "h3",
+          "label": "t:sections.all.subheading_size.options__3.label"
+        }
+      ],
+      "default": "h5",
+      "label": "t:sections.all.subheading_size.label"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.color-fan.settings.product.label",
+      "info": "t:sections.color-fan.settings.product.info"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.color-fan.settings.image.label",
+      "info": "t:sections.color-fan.settings.image.info"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "options": [
+        {
+          "value": "adapt",
+          "label": "t:sections.all.card_image_ratio.options__1.label"
+        },
+        {
+          "value": "square",
+          "label": "t:sections.all.card_image_ratio.options__2.label"
+        },
+        {
+          "value": "portrait",
+          "label": "t:sections.all.card_image_ratio.options__3.label"
+        },
+        {
+          "value": "landscape",
+          "label": "t:sections.all.card_image_ratio.options__4.label"
+        },
+        {
+          "value": "wide",
+          "label": "t:sections.all.card_image_ratio.options__5.label"
+        }
+      ],
+      "default": "adapt",
+      "label": "t:sections.all.card_image_ratio.label"
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "min": 240,
+      "max": 720,
+      "step": 20,
+      "unit": "px",
+      "label": "t:sections.color-fan.settings.image_width.label",
+      "default": 360
+    },
+    {
+      "type": "select",
+      "id": "fan_style",
+      "options": [
+        {
+          "value": "bloom",
+          "label": "t:sections.color-fan.settings.fan_style.options__1.label"
+        },
+        {
+          "value": "spread",
+          "label": "t:sections.color-fan.settings.fan_style.options__2.label"
+        }
+      ],
+      "default": "bloom",
+      "label": "t:sections.color-fan.settings.fan_style.label",
+      "info": "t:sections.color-fan.settings.fan_style.info"
+    },
+    {
+      "type": "select",
+      "id": "hover_ring",
+      "options": [
+        {
+          "value": "shade",
+          "label": "t:sections.color-fan.settings.hover_ring.options__1.label"
+        },
+        {
+          "value": "custom",
+          "label": "t:sections.color-fan.settings.hover_ring.options__2.label"
+        },
+        {
+          "value": "halo",
+          "label": "t:sections.color-fan.settings.hover_ring.options__3.label"
+        },
+        {
+          "value": "none",
+          "label": "t:sections.color-fan.settings.hover_ring.options__4.label"
+        }
+      ],
+      "default": "shade",
+      "label": "t:sections.color-fan.settings.hover_ring.label"
+    },
+    {
+      "type": "color",
+      "id": "hover_ring_color",
+      "default": "#d9b97a",
+      "label": "t:sections.color-fan.settings.hover_ring_color.label"
+    },
+    {
+      "type": "select",
+      "id": "fan_trigger",
+      "options": [
+        {
+          "value": "view",
+          "label": "t:sections.color-fan.settings.fan_trigger.options__1.label"
+        },
+        {
+          "value": "hover",
+          "label": "t:sections.color-fan.settings.fan_trigger.options__2.label"
+        }
+      ],
+      "default": "view",
+      "label": "t:sections.color-fan.settings.fan_trigger.label",
+      "info": "t:sections.color-fan.settings.fan_trigger.info"
+    },
+    {
+      "type": "range",
+      "id": "shade_corner_radius",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "t:sections.color-fan.settings.shade_corner_radius.label",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "image_corner_radius",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "t:sections.color-fan.settings.image_corner_radius.label",
+      "default": 0
+    },
+    {
+      "type": "checkbox",
+      "id": "show_divider",
+      "default": false,
+      "label": "t:sections.all.show_divider.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.highlight.header.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_highlight",
+      "default": false,
+      "label": "t:sections.all.highlight.enable.label"
+    },
+    {
+      "type": "select",
+      "id": "highlight_style",
+      "options": [
+        {
+          "value": "marker",
+          "label": "t:sections.all.highlight.style.options__1.label"
+        },
+        {
+          "value": "circle",
+          "label": "t:sections.all.highlight.style.options__2.label"
+        },
+        {
+          "value": "underline",
+          "label": "t:sections.all.highlight.style.options__3.label"
+        },
+        {
+          "value": "bold-underline",
+          "label": "t:sections.all.highlight.style.options__4.label"
+        },
+        {
+          "value": "modern-underline",
+          "label": "t:sections.all.highlight.style.options__5.label"
+        },
+        {
+          "value": "sketch-underline",
+          "label": "t:sections.all.highlight.style.options__6.label"
+        },
+        {
+          "value": "squiggle",
+          "label": "t:sections.all.highlight.style.options__7.label"
+        },
+        {
+          "value": "heavy-squiggle",
+          "label": "t:sections.all.highlight.style.options__8.label"
+        },
+        {
+          "value": "solid-color",
+          "label": "t:sections.all.highlight.style.options__9.label"
+        }
+      ],
+      "default": "marker",
+      "label": "t:sections.all.highlight.style.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.padding.header.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top.label",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom.label",
+      "default": 36
+    }
+  ],
+  "blocks": [
+    {
+      "type": "shade",
+      "name": "t:sections.color-fan.blocks.shade.name",
+      "settings": [
+        {
+          "type": "color",
+          "id": "color",
+          "default": "#d9b97a",
+          "label": "t:sections.color-fan.blocks.shade.settings.color.label"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:sections.color-fan.blocks.shade.settings.image.label",
+          "info": "t:sections.color-fan.blocks.shade.settings.image.info"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.color-fan.blocks.shade.settings.label.label",
+          "info": "t:sections.color-fan.blocks.shade.settings.label.info"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.color-fan.presets.name",
+      "blocks": [
+        {
+          "type": "shade",
+          "settings": {
+            "color": "#f6e8dc"
+          }
+        },
+        {
+          "type": "shade",
+          "settings": {
+            "color": "#eed2bd"
+          }
+        },
+        {
+          "type": "shade",
+          "settings": {
+            "color": "#e2b49a"
+          }
+        },
+        {
+          "type": "shade",
+          "settings": {
+            "color": "#d0977c"
+          }
+        },
+        {
+          "type": "shade",
+          "settings": {
+            "color": "#b97a60"
+          }
+        },
+        {
+          "type": "shade",
+          "settings": {
+            "color": "#9c6049"
+          }
+        },
+        {
+          "type": "shade",
+          "settings": {
+            "color": "#7d4936"
+          }
+        },
+        {
+          "type": "shade",
+          "settings": {
+            "color": "#5e3527"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

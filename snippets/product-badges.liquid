@@ -1,0 +1,72 @@
+{%- comment -%}
+  Renders the product's metafield labels plus the automatic sale and
+  sold-out badges as an overlay stack for the media gallery. Same rules
+  as the card badge: the text metafield overrides the black/white auto
+  pick, and the outline setting borrows whichever text color wins.
+
+  Accepts:
+  - product: {Object} Product Liquid object
+{%- endcomment -%}
+
+{%- liquid
+  assign has_sale = false
+  if product.compare_at_price > product.price and settings.sale_badge_basis != 'disable'
+    assign has_sale = true
+  endif
+-%}
+
+{%- if product.metafields.theme.label.value != blank or has_sale or product.available == false -%}
+  <div class="product__badges" aria-hidden="true">
+    {%- if product.metafields.theme.label.value != blank -%}
+      {%- capture badge_styles -%}
+        {%- if product.metafields.theme.label_color.value != blank -%}
+          --color-badge-background: {{ product.metafields.theme.label_color.value }}; --color-badge-border: var(--color-badge-background);
+          {%- if product.metafields.theme.label_text_color.value != blank -%}
+            {%- assign chosen_text_color = product.metafields.theme.label_text_color.value -%}
+          {%- else -%}
+            {%- assign input_bg_color = product.metafields.theme.label_color.value -%}
+            {%- assign asif_contrast_black = input_bg_color | color_contrast: '#000000' -%}
+            {%- assign asif_contrast_white = input_bg_color | color_contrast: '#ffffff' -%}
+            {%- if asif_contrast_black > asif_contrast_white -%}
+              {%- assign chosen_text_color = '#000000' -%}
+            {%- else -%}
+              {%- assign chosen_text_color = '#ffffff' -%}
+            {%- endif -%}
+          {%- endif -%}
+          --color-badge-foreground: {{ chosen_text_color }};
+        {%- endif -%}
+      {%- endcapture -%}
+      {%- for label in product.metafields.theme.label.value -%}
+        <span class="badge"{% if badge_styles != blank %} style="{{ badge_styles }}"{% endif %}>
+          {{ label | escape }}
+        </span>
+      {%- endfor -%}
+    {%- endif -%}
+
+    {%- if product.available == false -%}
+      <span class="badge badge--soldout">
+        {{ 'products.product.sold_out' | t }}
+      </span>
+    {%- elsif has_sale -%}
+      {%- assign on_sale_text = 'products.product.on_sale' | t -%}
+      {%- if on_sale_text != blank -%}
+        <span class="badge badge--onsale">
+          {%- case settings.sale_badge_basis %}
+          {%- when 'text' -%}
+            {{ 'products.product.on_sale' | t }}
+          {%- when 'percentage' -%}
+            &#8211;{{ product.compare_at_price | minus: product.price | times: 100.0 | divided_by: product.compare_at_price | round }}%
+          {%- when 'value' -%}
+            &#8211;{% if settings.currency_code_enabled %}{{ product.compare_at_price | minus: product.price | money_with_currency }}{% else %}{{ product.compare_at_price | minus: product.price | money }}{% endif %}
+          {%- else %}
+            {%- if product.variants.size == 1 -%}
+              &#8211;{{ product.compare_at_price | minus: product.price | times: 100.0 | divided_by: product.compare_at_price | round }}%
+            {%- else -%}
+              {{ 'products.product.on_sale' | t }}
+            {%- endif -%}
+          {%- endcase %}
+        </span>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+{%- endif -%}
