@@ -99,10 +99,10 @@
       "name": "t:sections.image-banner.presets.name",
       "settings": {
         "image": "shopify://shop_images/BANNER_YUNTA.jpg",
-        "image_position": "20% 100%",
-        "text_box_position": "middle-left",
+        "image_position": "center center",
+        "text_box_position": "bottom-center",
         "text_alignment": "center",
-        "image_ratio": "650px",
+        "image_ratio": "adapt",
         "show_text_box": false,
         "full_width": true,
         "show_divider": false,
