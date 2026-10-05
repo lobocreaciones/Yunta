@@ -107,6 +107,7 @@
         "full_width": true,
         "show_divider": false,
         "image_behavior": "none",
+        "mobile_image": "shopify://shop_images/BANNER_YUNTA.jpg",
         "mobile_text_alignment": "center",
         "mobile_image_ratio": "auto",
         "stack_images_on_mobile": true,
