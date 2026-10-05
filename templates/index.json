@@ -83,10 +83,10 @@
         "button_MKkpAN": {
           "type": "button",
           "settings": {
-            "button_size": "large",
+            "button_size": "medium",
             "button_label": "COMPRAR",
             "button_link": "shopify://collections/ver-todo",
-            "button_style_secondary": true,
+            "button_style_secondary": false,
             "button_alt_label": "",
             "button_alt_link": "",
             "button_alt_style_secondary": false
@@ -109,7 +109,7 @@
         "image_behavior": "none",
         "mobile_image": "shopify://shop_images/BANNER_YUNTA.jpg",
         "mobile_text_alignment": "center",
-        "mobile_image_ratio": "auto",
+        "mobile_image_ratio": "adapt",
         "stack_images_on_mobile": true,
         "show_text_below": true,
         "colors_button_label": "#1a1b18",
@@ -118,8 +118,8 @@
         "colors_overlay": "#000000",
         "colors_overlay_opacity": 0,
         "colors_highlight": "#ffb503",
-        "padding_top": 64,
-        "padding_bottom": 0
+        "padding_top": 68,
+        "padding_bottom": 20
       }
     },
     "empty_space_z7KNJ8": {
