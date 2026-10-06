@@ -122,11 +122,6 @@
         "disabled": false,
         "settings": {}
       },
-      "320593021044489861": {
-        "type": "shopify://apps/sales-discounts/blocks/countdown/29205fb1-2e68-4d81-a905-d828a51c8413",
-        "disabled": false,
-        "settings": {}
-      },
       "12753009889109327377": {
         "type": "shopify://apps/sales-discounts/blocks/price_property/29205fb1-2e68-4d81-a905-d828a51c8413",
         "disabled": false,
@@ -134,11 +129,6 @@
           "original_price_label": "🏷️ Original price",
           "visibility": "all"
         }
-      },
-      "4608251692753025422": {
-        "type": "shopify://apps/sales-discounts/blocks/sale-labels/29205fb1-2e68-4d81-a905-d828a51c8413",
-        "disabled": false,
-        "settings": {}
       },
       "6159598353363395418": {
         "type": "shopify://apps/google-youtube/blocks/store_widget/14ec7bd0-ac77-49a9-9417-90752398bdff",
@@ -154,6 +144,21 @@
       "1232542678405107163": {
         "type": "shopify://apps/instafeed/blocks/head-block/c447db20-095d-4a10-9725-b5977662c9d5",
         "disabled": false,
+        "settings": {}
+      },
+      "320593021044489861": {
+        "type": "shopify://apps/sales-discounts/blocks/countdown/29205fb1-2e68-4d81-a905-d828a51c8413",
+        "disabled": true,
+        "settings": {}
+      },
+      "7860399670564181960": {
+        "type": "shopify://apps/profy-banner-timer/blocks/app_embed/243a639f-ca73-4afe-b6aa-3a23277fb424",
+        "disabled": false,
+        "settings": {}
+      },
+      "4608251692753025422": {
+        "type": "shopify://apps/sales-discounts/blocks/sale-labels/29205fb1-2e68-4d81-a905-d828a51c8413",
+        "disabled": true,
         "settings": {}
       }
     }
