@@ -51,7 +51,6 @@
         "heading_hHrwkH",
         "button_bngmVj"
       ],
-      "disabled": true,
       "custom_css": [
         "@media screen and (min-width: 750px) {.banner__heading {max-width: 35rem; }}"
       ],
@@ -96,6 +95,7 @@
       "block_order": [
         "button_MKkpAN"
       ],
+      "disabled": true,
       "name": "t:sections.image-banner.presets.name",
       "settings": {
         "image": "shopify://shop_images/BANNER_YUNTA.jpg",
