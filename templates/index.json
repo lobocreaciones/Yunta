@@ -122,12 +122,56 @@
         "padding_bottom": 20
       }
     },
+    "scrolling_promotion_7Map8N": {
+      "type": "scrolling-promotion",
+      "blocks": {
+        "announcement_GCcfC9": {
+          "type": "announcement",
+          "settings": {
+            "icon": "price_tag",
+            "icon_size": "medium",
+            "custom_icon": "",
+            "text": "HASTA 12 CUOTAS SIN INTERÉS",
+            "text_size": 20,
+            "link": ""
+          }
+        },
+        "announcement_7Vnzyc": {
+          "type": "announcement",
+          "settings": {
+            "icon": "truck",
+            "icon_size": "medium",
+            "custom_icon": "",
+            "text": "ENVÍOS A TODO CHILE CON BLUEXPRESS",
+            "text_size": 20,
+            "link": ""
+          }
+        }
+      },
+      "block_order": [
+        "announcement_GCcfC9",
+        "announcement_7Vnzyc"
+      ],
+      "name": "t:sections.scrolling-promotion.presets.name",
+      "settings": {
+        "direction": "left",
+        "speed": 1.9,
+        "show_divider": false,
+        "use_custom_colors": false,
+        "colors_icon": "#ffffff",
+        "colors_text": "#1a1b18",
+        "colors_background": "#ffffff",
+        "gradient_background": "",
+        "padding_top": 72,
+        "padding_bottom": 48
+      }
+    },
     "empty_space_z7KNJ8": {
       "type": "empty-space",
       "name": "t:sections.empty-space.presets.name",
       "settings": {
-        "desktop_height": 72,
-        "mobile_height": 28
+        "desktop_height": 24,
+        "mobile_height": 20
       }
     },
     "tab_collage_XRwxmr": {
@@ -256,7 +300,7 @@
         "colors_background": "#000000",
         "gradient_background": "",
         "colors_highlight": "#ffffff",
-        "padding_top": 0,
+        "padding_top": 32,
         "padding_bottom": 0,
         "enable_highlight": true,
         "highlight_style": "solid-color"
@@ -816,6 +860,7 @@
   "order": [
     "video_hero_jBbnJe",
     "image_banner_88diiz",
+    "scrolling_promotion_7Map8N",
     "empty_space_z7KNJ8",
     "tab_collage_XRwxmr",
     "rich_text_zJTbpp",
