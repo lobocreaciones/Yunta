@@ -34,7 +34,7 @@
             "icon_size": "medium",
             "custom_icon": "",
             "text": "AGREGA EL SET DE FIERRITOS A TU CARRITO",
-            "text_size": 20,
+            "text_size": 18,
             "link": "shopify://products/set-fierritos-para-parrilla-siete-fuegos"
           }
         },
@@ -45,7 +45,7 @@
             "icon_size": "medium",
             "custom_icon": "",
             "text": "LLÉVATELO GRATIS CON TU PARRILLA YUNTA",
-            "text_size": 20,
+            "text_size": 18,
             "link": "shopify://products/set-fierritos-para-parrilla-siete-fuegos"
           }
         }
@@ -64,8 +64,8 @@
         "colors_text": "#1a1b18",
         "colors_background": "#DB7726",
         "gradient_background": "",
-        "padding_top": 20,
-        "padding_bottom": 20
+        "padding_top": 16,
+        "padding_bottom": 16
       }
     },
     "main": {
