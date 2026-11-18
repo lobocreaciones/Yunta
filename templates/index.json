@@ -253,7 +253,7 @@
         "colors_button_background": "#db7726",
         "colors_text": "#ffffff",
         "colors_border": "#db7726",
-        "colors_background": "#272c32",
+        "colors_background": "#000000",
         "gradient_background": "",
         "colors_highlight": "#ffffff",
         "padding_top": 0,
