@@ -137,13 +137,6 @@
             "share_label": "Compartir"
           }
         },
-        "54684625-1615-430d-b322-cfb5af689b94": {
-          "type": "image",
-          "settings": {
-            "height": 20,
-            "link": ""
-          }
-        },
         "a2f06597-05bf-457d-a1e5-54d6e03ff425": {
           "type": "sticky_cart",
           "settings": {
@@ -155,7 +148,7 @@
           "settings": {
             "icon": "price_tag",
             "heading": "Complementa tu Yunta con:",
-            "make_collapsible_row": false,
+            "make_collapsible_row": true,
             "product_list_limit": 10,
             "image_ratio": "square",
             "image_position": "center center",
@@ -179,7 +172,6 @@
         "inventory_status",
         "buy_buttons",
         "share",
-        "54684625-1615-430d-b322-cfb5af689b94",
         "a2f06597-05bf-457d-a1e5-54d6e03ff425",
         "complementary_DVafWw"
       ],
@@ -191,10 +183,10 @@
         "enable_sticky_info": true,
         "media_position": "left",
         "media_size": "large",
-        "gallery_layout": "thumbnail_slider",
+        "gallery_layout": "stacked",
         "image_ratio": "adapt",
         "show_featured_media": false,
-        "show_thumbnails": true,
+        "show_thumbnails": false,
         "hide_variants": false,
         "show_gallery_badges": false,
         "enable_image_zoom": true,
@@ -202,7 +194,51 @@
         "mobile_image_ratio": "adapt_first",
         "show_mobile_thumbnails": false,
         "padding_top": 36,
-        "padding_bottom": 72
+        "padding_bottom": 40
+      }
+    },
+    "scrolling_promotion_JFX7fM": {
+      "type": "scrolling-promotion",
+      "blocks": {
+        "announcement_R8Qt6T": {
+          "type": "announcement",
+          "settings": {
+            "icon": "none",
+            "icon_size": "medium",
+            "custom_icon": "",
+            "text": "AGREGA EL SET DE FIERRITOS A TU CARRITO",
+            "text_size": 20,
+            "link": "shopify://products/set-fierritos-para-parrilla-siete-fuegos"
+          }
+        },
+        "announcement_PMikXL": {
+          "type": "announcement",
+          "settings": {
+            "icon": "none",
+            "icon_size": "medium",
+            "custom_icon": "",
+            "text": "LLÉVATELO GRATIS CON TU PARRILLA YUNTA",
+            "text_size": 20,
+            "link": "shopify://products/set-fierritos-para-parrilla-siete-fuegos"
+          }
+        }
+      },
+      "block_order": [
+        "announcement_R8Qt6T",
+        "announcement_PMikXL"
+      ],
+      "name": "t:sections.scrolling-promotion.presets.name",
+      "settings": {
+        "direction": "left",
+        "speed": 1.6,
+        "show_divider": false,
+        "use_custom_colors": true,
+        "colors_icon": "#ffffff",
+        "colors_text": "#1a1b18",
+        "colors_background": "#DB7726",
+        "gradient_background": "",
+        "padding_top": 36,
+        "padding_bottom": 36
       }
     },
     "dual_scroll_fKG3Cq": {
@@ -353,7 +389,7 @@
         "enable_highlight": false,
         "highlight_style": "marker",
         "narrow": true,
-        "padding_top": 0,
+        "padding_top": 72,
         "padding_bottom": 0,
         "heading_color": "#ffffff",
         "text_color": "#ffffff",
@@ -514,7 +550,7 @@
       "settings": {
         "product_list_limit": 10,
         "edge_to_edge": false,
-        "show_divider": true,
+        "show_divider": false,
         "heading": "Lleva tu YUNTA más allá.",
         "heading_size": "h2",
         "heading_alignment": "left",
@@ -543,6 +579,7 @@
   "order": [
     "content_scrollspy_iWw77J",
     "main",
+    "scrolling_promotion_JFX7fM",
     "dual_scroll_fKG3Cq",
     "product-details",
     "testimonials_JXwnrV",
