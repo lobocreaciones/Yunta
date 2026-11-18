@@ -9,6 +9,50 @@
  */
 {
   "sections": {
+    "scrolling_promotion_JFX7fM": {
+      "type": "scrolling-promotion",
+      "blocks": {
+        "announcement_R8Qt6T": {
+          "type": "announcement",
+          "settings": {
+            "icon": "none",
+            "icon_size": "medium",
+            "custom_icon": "",
+            "text": "AGREGA EL SET DE FIERRITOS A TU CARRITO",
+            "text_size": 20,
+            "link": "shopify://products/set-fierritos-para-parrilla-siete-fuegos"
+          }
+        },
+        "announcement_PMikXL": {
+          "type": "announcement",
+          "settings": {
+            "icon": "none",
+            "icon_size": "medium",
+            "custom_icon": "",
+            "text": "LLÉVATELO GRATIS CON TU PARRILLA YUNTA",
+            "text_size": 20,
+            "link": "shopify://products/set-fierritos-para-parrilla-siete-fuegos"
+          }
+        }
+      },
+      "block_order": [
+        "announcement_R8Qt6T",
+        "announcement_PMikXL"
+      ],
+      "name": "t:sections.scrolling-promotion.presets.name",
+      "settings": {
+        "direction": "left",
+        "speed": 1.6,
+        "show_divider": false,
+        "use_custom_colors": true,
+        "colors_icon": "#ffffff",
+        "colors_text": "#1a1b18",
+        "colors_background": "#DB7726",
+        "gradient_background": "",
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    },
     "content_scrollspy_iWw77J": {
       "type": "content-scrollspy",
       "name": "t:sections.content_scrollspy.presets.name",
@@ -195,50 +239,6 @@
         "show_mobile_thumbnails": false,
         "padding_top": 36,
         "padding_bottom": 40
-      }
-    },
-    "scrolling_promotion_JFX7fM": {
-      "type": "scrolling-promotion",
-      "blocks": {
-        "announcement_R8Qt6T": {
-          "type": "announcement",
-          "settings": {
-            "icon": "none",
-            "icon_size": "medium",
-            "custom_icon": "",
-            "text": "AGREGA EL SET DE FIERRITOS A TU CARRITO",
-            "text_size": 20,
-            "link": "shopify://products/set-fierritos-para-parrilla-siete-fuegos"
-          }
-        },
-        "announcement_PMikXL": {
-          "type": "announcement",
-          "settings": {
-            "icon": "none",
-            "icon_size": "medium",
-            "custom_icon": "",
-            "text": "LLÉVATELO GRATIS CON TU PARRILLA YUNTA",
-            "text_size": 20,
-            "link": "shopify://products/set-fierritos-para-parrilla-siete-fuegos"
-          }
-        }
-      },
-      "block_order": [
-        "announcement_R8Qt6T",
-        "announcement_PMikXL"
-      ],
-      "name": "t:sections.scrolling-promotion.presets.name",
-      "settings": {
-        "direction": "left",
-        "speed": 1.6,
-        "show_divider": false,
-        "use_custom_colors": true,
-        "colors_icon": "#ffffff",
-        "colors_text": "#1a1b18",
-        "colors_background": "#DB7726",
-        "gradient_background": "",
-        "padding_top": 36,
-        "padding_bottom": 36
       }
     },
     "dual_scroll_fKG3Cq": {
@@ -578,8 +578,8 @@
   },
   "order": [
     "content_scrollspy_iWw77J",
-    "main",
     "scrolling_promotion_JFX7fM",
+    "main",
     "dual_scroll_fKG3Cq",
     "product-details",
     "testimonials_JXwnrV",
