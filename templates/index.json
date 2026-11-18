@@ -51,6 +51,7 @@
         "heading_hHrwkH",
         "button_bngmVj"
       ],
+      "disabled": true,
       "custom_css": [
         "@media screen and (min-width: 750px) {.banner__heading {max-width: 35rem; }}"
       ],
@@ -88,17 +89,16 @@
             "button_style_secondary": false,
             "button_alt_label": "",
             "button_alt_link": "",
-            "button_alt_style_secondary": false
+            "button_alt_style_secondary": true
           }
         }
       },
       "block_order": [
         "button_MKkpAN"
       ],
-      "disabled": true,
       "name": "t:sections.image-banner.presets.name",
       "settings": {
-        "image": "shopify://shop_images/BANNER_YUNTA.jpg",
+        "image": "shopify://shop_images/YUNTA_FIESTAS_BANNER.jpg",
         "image_position": "center center",
         "text_box_position": "bottom-center",
         "text_alignment": "center",
@@ -107,7 +107,7 @@
         "full_width": true,
         "show_divider": false,
         "image_behavior": "none",
-        "mobile_image": "shopify://shop_images/BANNER_YUNTA.jpg",
+        "mobile_image": "shopify://shop_images/YUNTA_FIESTAS_BANNER.jpg",
         "mobile_text_alignment": "center",
         "mobile_image_ratio": "adapt",
         "stack_images_on_mobile": true,
